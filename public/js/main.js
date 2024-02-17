@@ -1,59 +1,73 @@
-function drawMinesweeper(dimension) {
+const defHeaders = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json'
+}
+
+function drawMinesweeper(game) {
     var where = document.getElementById("minesweeper");
     
-
+    game = JSON.parse(game)
     //clear minesweeper
     while (where.firstChild) {
         where.removeChild(where.firstChild);
     }
 
-    for (var i = 0; i < dimension; i++) {
+    let hasToBlock = false
+
+    for (var i = 0; i < game.length; i++) {
         element = document.createElement("div");
         element.className = "row";
         element.id = "row" + i;
 
         where.appendChild(element);
 
-        for (var j = 0; j < dimension; j++) {
+        //i = y axis
+        //j = x axis
+
+        for (var j = 0; j < game[i].length; j++) {
+          if (game[i][j] == 0) {
             element = document.createElement("div");
-            element.className = "cell";
+            element.className = "cell unchecked";
             element.id = "cell" + i + j;
+            
+            element.setAttribute("data-x", j);
+            element.setAttribute("data-y", i);
+
             element.onclick = function() {
-                console.log("puta")
+              checkCell(this.getAttribute("data-x"), this.getAttribute("data-y"));
             };
 
             document.getElementById("row" + i).appendChild(element);
+          } else if (game[i][j] == 1) {
+            element = document.createElement("div");
+            element.className = "cell checked";
+            element.id = "cell" + i + j;
+
+            document.getElementById("row" + i).appendChild(element);
+          } else if (game[i][j] == 2) {
+            element = document.createElement("div");
+            element.className = "cell mine";
+            element.id = "cell" + i + j;
+
+            document.getElementById("row" + i).appendChild(element);
+            hasToBlock = true
+          }
         }
     }
-    
-    (async () => {
-        const rawResponse = await fetch('/minesweeper/create-game', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            user: "wonobory",
-            bet: parseFloat(document.getElementById("bet-amount").value),
-            dimension: dimension,
-            mines: parseInt(document.getElementById("mines").value)
-          })
-        })
 
-        const res = await rawResponse
-        if (res.status == 400) {
-          alert("Ya estás en una partida")
-          setCookie("game", res.json().id, 30)
-          return
-        } 
-        if (res.status == 200) {
-          setCookie("game", await res.json().id, 30)
-          disableButtons();
-          return
-        }
-    })();
-    
+    if (hasToBlock) {
+      blockCells(game)
+    }
+}
+
+function blockCells(game) {
+  for (var i = 0; i < game.length; i++) {
+    for (var j = 0; j < game[i].length; j++) {
+      document.getElementById("cell" + i + j).onclick = null;
+      document.getElementById("cell" + i + j).style.cursor = "not-allowed";
+    }
+  }
+
 }
 
 
@@ -82,38 +96,58 @@ function disabledMinesweeper(dimension) {
   }
 }
 
-function disableButtons() {
-  document.getElementById("bet-amount").disabled = true;
-  document.getElementById("mines").disabled = true;
-  document.getElementById("start").innerHTML = "Check-out";
-  document.getElementById("start").className = "check-out";
-  document.getElementById("start").style.backgroundColor = "#44A64A";
-  document.getElementById("start").style.color = "black";
-}
-
 //when ready
 document.addEventListener("DOMContentLoaded", function(event) {
   disabledMinesweeper(5)
 });
 
 function checkCell(x, y) {
-  (async () => {
-    const rawResponse = await fetch('/minesweeper/check-cell', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user: "wonobory",
-        id: ""
-      })
-    });
-    const content = await rawResponse.json();
-  
-    console.log(content);
-  })();
+  $.ajax({
+    url: `${hex}/check-cell`,
+    type: 'POST',
+    headers: defHeaders,
+    data: JSON.stringify({
+      x: x,
+      y: y,
+    }),
+    success: function (data) {
+      if (data.cellResult == 0) {
+        document.getElementById("cell" + y + x).className = "cell checked";
+        document.getElementById("cell" + y + x).onclick = null;
+      } else if (data.cellResult == 1) {
+        document.getElementById("cell" + y + x).className = "cell mine";
+        document.getElementById("cell" + y + x).onclick = null;
+        blockCells(5)
+      }
+    },
+    error: function (err) {
+      console.log(err)
+    }
+  })
+
 }
+
+function createGame(bet, mines, size) {
+  $.ajax({
+    url: '/minesweeper/create-game',
+    type: 'POST',
+    headers: defHeaders,
+    data: JSON.stringify({
+      bet: bet,
+      mines: mines,
+      size: size
+    }),
+    success: function (data) {
+      console.log(data)
+      window.location.href = `/minesweeper-game/${data.id}`
+    },
+    error: function (err) {
+      console.log(err)
+    }
+  })
+}
+
+
 
 function setCookie(name,value,days) {
   var expires = "";

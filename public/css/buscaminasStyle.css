@@ -18,10 +18,19 @@
     transition: all 0.2s ease-in-out;
 }
 
-.cell:hover {
-    background: #5e5e8a;
+.checked {
+    background: #bfbfdb;
+    cursor: not-allowed;
 }
 
+.mine {
+    background: #ff4d4d;
+    cursor: not-allowed;
+}
+
+.unchecked:hover {
+    background: #5e5e8a;
+}
 
 #minesweeper {
     display: flex;
@@ -74,4 +83,5 @@ label {
 
 .check-out {
     background: #44A64A;
+    color: black;
 }
