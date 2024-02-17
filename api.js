@@ -111,8 +111,8 @@ app.post('/minesweeper/create-game', async (req, res) => {
         return res.end()
     }
 
-    if (req.body.mines > 5 && req.body.mines > 1) {
-        res.status(400).json({ error: "El numero de minas no puede ser superior a 5" })
+    if (req.body.mines > 20 && req.body.mines > 1) {
+        res.status(400).json({ error: "El numero de minas no puede ser superior a 20 o inferior a 1" })
         return res.end()
     }
 
@@ -178,6 +178,82 @@ app.post('/minesweeper/create-game', async (req, res) => {
     })
 })
 
+app.post('/minesweeper-game/:hex/reveal-mines', async (req, res) => {
+    if (!req.params.hex) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+
+    const query = `SELECT * FROM minesweeper WHERE hash = '${req.params.hex}'`
+    result = await pool.query(query)
+
+    if (!result.length) {
+        res.status(400).json({ error: "No se ha encontrado la partida" })
+        return res.end()
+    }
+
+    const partida = result[0]
+
+    if (partida.user_id != req.cookies.user_id) {
+        res.status(400).json({ error: "No tienes permisos para jugar esta partida" })
+        return res.end()
+    }
+
+    if (partida.isGameActive == 1) {
+        res.status(400).json({ error: "La partida aún no ha terminado" })
+        return res.end()
+    }
+
+    res.status(200).json({ mines: partida.matrix })
+    return res.end()
+})
+
+
+//Mantenc aquesta api, per a que si es recarrega la partida, es pugui calcular de quant és el check-out
+app.post('/minesweeper-game/:hex/get-multiplier', async (req, res) => {
+    if (!req.params.hex) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+
+    const query = `SELECT * FROM minesweeper WHERE hash = '${req.params.hex}'`
+    result = await pool.query(query)
+
+    if (!result.length) {
+        res.status(400).json({ error: "No se ha encontrado la partida" })
+        return res.end()
+    }
+
+    const partida = result[0]
+
+    if (partida.user_id != req.cookies.user_id) {
+        res.status(400).json({ error: "No tienes permisos para jugar esta partida" })
+        return res.end()
+    }
+
+    if (partida.isGameActive == 0) {
+        res.status(400).json({ error: "La ya ha terminado" })
+        return res.end()
+    }
+
+    const maxCells = partida.size**2
+    const checkedCells = JSON.parse(partida.checkedCells).reduce((a, b) => a.concat(b)).filter(x => x == 1).length
+
+    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-partida.mines)
+    const denominador = probForm(maxCells, maxCells - partida.mines)
+
+    console.log(numerador, denominador)
+    const win_prob = numerador/denominador
+
+    const fairMultiplier = 1/win_prob
+
+    //Si es vol configurar, aqui hi ha el dumb_tax
+    const houseEdge = 0.03
+    const multiplier = Math.floor(fairMultiplier * (1 - houseEdge)*100)/100
+
+    res.status(200).json({ multiplier: multiplier })
+})
+
 app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
     if (!req.body.x || !req.body.y) {
         res.status(400).json({ error: "Faltan parametros" })
@@ -207,7 +283,7 @@ app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
         return res.end()
     }
 
-    const partida = result[0]
+    var partida = result[0]
 
     if (partida.user_id != req.cookies.user_id) {
         res.status(400).json({ error: "No tienes permisos para jugar esta partida" })
@@ -238,10 +314,24 @@ app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
         return res.end()
     }
 
+    const maxCells = partida.size**2
+    const checkedCells =partida.checkedCells.reduce((a, b) => a.concat(b)).filter(x => x == 1).length
+
+    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-partida.mines)
+    const denominador = probForm(maxCells, maxCells - partida.mines)
+
+    const win_prob = numerador/denominador
+
+    const fairMultiplier = 1/win_prob
+
+    //Si es vol configurar, aqui hi ha el dumb_tax
+    const houseEdge = 0.03
+    const multiplier = Math.floor(fairMultiplier * (1 - houseEdge)*100)/100
+
     const query2 = `UPDATE minesweeper SET checkedCells = '${JSON.stringify(partida.checkedCells)}' WHERE hash = '${req.params.hex}'`
     await pool.query(query2)
 
-    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells) })
+    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells), multiplier: multiplier })
 })
 
 async function gameExists(user_id, gamemode) {
@@ -259,4 +349,19 @@ async function gameExists(user_id, gamemode) {
             }
             return 0
     }
+}
+
+//NO TOCAR; D'ALGUNA MANERA FUNCIONA
+function probForm(a, b) {
+    var a1 = a-b
+    var a2 = a
+
+    for (var i = 0; i < a1; i++) {
+        if (!a2) {
+            a2 = a-i
+            continue
+        }
+        a2*=a-i
+    }
+    return a2
 }

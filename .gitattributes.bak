@@ -1,0 +1,1 @@
+const prob = (factoritzar(maxCells - partida.mines) * factoritze(maxCells - checkedCells))/factorize(maxCells - partida.mines - checkedCells)*factorize(maxCells)
