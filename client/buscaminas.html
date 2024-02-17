@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscaminas</title>
+    
+    <link rel="stylesheet" href="css/buscaminasStyle.css">
+    <script src="js/main.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="config-column">
+            <label>Bet amount:</label>
+            <input type="number" id="bet-amount" placeholder="Bet amount">
+            <label>Number of mines:</label>
+            <input type="number" id="mines" placeholder="Number of mines">
+
+            <button id="start" onclick="drawMinesweeper(5)">Start game</button>
+        </div>
+        <div id="minesweeper">
+            
+        </div>
+    </div>
+</body>
+</html>
