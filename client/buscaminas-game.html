@@ -16,11 +16,20 @@
     <div class="container">
         <div class="config-column">
             <label>Bet amount:</label>
-            <input type="number" id="bet-amount" placeholder="Bet amount" disabled="true">
+            <input type="number" id="bet-amount" placeholder="Bet amount"  class="blocked" disabled>
             <label>Number of mines:</label>
-            <input type="number" id="mines" placeholder="Number of mines" disabled="true">
+            <div class="mines-input">
+                <div class="mine-input-number blocked">1</div>
+                <div class="mine-input-number blocked">3</div>
+                <div class="mine-input-number blocked">5</div>
+                <div class="mine-input-number blocked">10</div>
+                <div class="mine-input-number blocked" id='custom-mines'>
+                    Custom
+                </div>
+            </div>
+            <input type="hidden" id="mines" placeholder="Number of mines">
 
-            <button id="check-out" class="check-out" onclick="">Check-out</button>
+            <button id="check-out" class="check-out" onclick="">Cash-Out </button>
         </div>
         <div id="minesweeper">
             

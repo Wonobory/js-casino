@@ -17,9 +17,18 @@
             <label>Bet amount:</label>
             <input type="number" id="bet-amount" placeholder="Bet amount">
             <label>Number of mines:</label>
-            <input type="number" id="mines" placeholder="Number of mines">
+            <div class="mines-input">
+                <div class="mine-input-number" onclick="selectMine(this, 1)">1</div>
+                <div class="mine-input-number" onclick="selectMine(this, 3)">3</div>
+                <div class="mine-input-number" onclick="selectMine(this, 5)">5</div>
+                <div class="mine-input-number" onclick="selectMine(this, 10)">10</div>
+                <div class="mine-input-number"  id='custom-mines' onclick="switchCustom(this)">
+                    Custom
+                </div>
+            </div>
+            <input type="hidden" id="mines" placeholder="Number of mines">
 
-            <button id="start" onclick="createGame(document.getElementById('bet-amount').value, document.getElementById('mines').value, 5)">Start game</button>
+            <button id="start" class="start-game" onclick="createGame(document.getElementById('bet-amount').value, document.getElementById('mines').value, 5)">Start game</button>
         </div>
         <div id="minesweeper">
             

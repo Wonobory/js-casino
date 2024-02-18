@@ -90,7 +90,64 @@ function drawMinesweeper(game) {
     if (hasToBlock) {
       blockCells(game)
       revealMines(hex, Game)
+      switchToNewGame()
+    } else {
+      $.ajax({
+        url: `${hex}/get-multiplier`,
+        type: 'POST',
+        headers: defHeaders,
+        success: function (data2) {
+            const checkout = document.getElementById("check-out")
+            const prize = data2.bet * data2.multiplier
+
+            checkout.innerText = `Cash-Out $${parseFloat(prize.toFixed(3)).toLocaleString()}`
+        },
+        error: function (err) {
+            console.log('Error:' + err)
+        }
+      })
     }
+}
+
+function switchToNewGame() {
+  const checkout = document.getElementById('check-out')
+  checkout.className = 'start-game'
+  checkout.innerText = 'Start Game'
+  checkout.onclick = function() {
+    createGame(document.getElementById('bet-amount').value, document.getElementById('mines').value, 5)
+  }
+
+  const minesInput = document.getElementById('mines')
+  const betInput = document.getElementById('bet-amount')
+
+  minesInput.disabled = false
+  betInput.disabled = false
+
+  minesInput.value = ''
+  betInput.value = ''
+
+  betInput.classList.remove('blocked')
+
+  $('.mine-input-number').each(function() {
+    this.classList.remove('selected')
+    this.classList.remove('blocked')
+    if (this.id == 'custom-mines') {
+      this.onclick = function() {
+        switchCustom(this)
+      }
+    } else {
+      this.onclick = function() {
+        selectMine(this, this.innerText)
+      }
+    }
+    
+  })
+  document.getElementById('custom-mines-input').disabled = false
+  document.getElementById('custom-mines-input').classList.remove('blocked')
+
+  if (document.getElementById('custom-mines-input')) {
+    switchCustom(document.getElementById('custom-mines'))
+  }
 }
 
 function changeImg(img, type) {
@@ -204,6 +261,7 @@ async function checkCell(x, y) {
     }),
     success: async function (data) {
       if (data.cellResult == 0) {
+
         document.getElementById("cell" + y + x).className = "cell checked";
         document.getElementById("cell" + y + x).onclick = null;
         Game[y][x] = 1
@@ -215,6 +273,11 @@ async function checkCell(x, y) {
         div.className = "multiplier-container"
         span.className = "multiplier-text"
         span.innerText = data.multiplier+'x'
+
+        const checkout = document.getElementById("check-out")
+        const prize = data.bet * data.multiplier
+
+        checkout.innerText = `Cash-Out $${parseFloat(prize.toFixed(3)).toLocaleString()}`
 
         div.appendChild(span)
         document.getElementById("cell" + y + x).appendChild(div)
@@ -235,6 +298,7 @@ async function checkCell(x, y) {
         $('#cell' + y + x).effect("shake", {times: 5}, 500);
         revealMines(hex, Game)
         blockCells(Game)
+        switchToNewGame()
       }
     },
     error: function (err) {
@@ -275,6 +339,51 @@ function getMultiplier(hex) {
       console.log(err)
     }
   })
+}
+
+function selectMine(selector, value) {
+
+  if (document.getElementById('custom-mines').firstChild.className == 'custom-input' && selector != document.getElementById('custom-mines')) {
+    switchCustom(document.getElementById('custom-mines'))
+  }
+
+  if (!selector.classList.contains('selected')) {
+    selector.classList.add('selected')
+  }
+
+  const mines = document.getElementById('mines')
+  mines.value = value
+ 
+  $('.mine-input-number').each(function() {
+    if (this !== selector) {
+      this.classList.remove('selected')
+    }
+  })
+}
+
+function switchCustom(element) {
+  console.log(element)
+  if (element.firstChild.className == 'custom-input') {
+    element.innerText = 'Custom'
+    element.onclick = function() {
+      switchCustom(this)
+    }
+  } else {
+    const input = document.createElement('input') 
+    input.type = 'number'
+    input.className = 'custom-input'
+    input.id = 'custom-mines-input'
+    input.placeholder = ''
+    input.oninput = function() {
+      selectMine(this.parentElement, this.value)
+    }
+    element.innerText = ''
+    element.appendChild(input)
+    element.onclick = null
+    input.focus()
+    input.value = '1'
+    selectMine(element, 1)
+  }
 }
 
 function setCookie(name,value,days) {

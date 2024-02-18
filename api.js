@@ -239,19 +239,9 @@ app.post('/minesweeper-game/:hex/get-multiplier', async (req, res) => {
     const maxCells = partida.size**2
     const checkedCells = JSON.parse(partida.checkedCells).reduce((a, b) => a.concat(b)).filter(x => x == 1).length
 
-    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-partida.mines)
-    const denominador = probForm(maxCells, maxCells - partida.mines)
+    const multiplier = getMultiplier(maxCells, checkedCells, partida.mines)
 
-    console.log(numerador, denominador)
-    const win_prob = numerador/denominador
-
-    const fairMultiplier = 1/win_prob
-
-    //Si es vol configurar, aqui hi ha el dumb_tax
-    const houseEdge = 0.03
-    const multiplier = Math.floor(fairMultiplier * (1 - houseEdge)*100)/100
-
-    res.status(200).json({ multiplier: multiplier })
+    res.status(200).json({ multiplier: multiplier, bet: partida.bet })
 })
 
 app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
@@ -317,21 +307,12 @@ app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
     const maxCells = partida.size**2
     const checkedCells =partida.checkedCells.reduce((a, b) => a.concat(b)).filter(x => x == 1).length
 
-    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-partida.mines)
-    const denominador = probForm(maxCells, maxCells - partida.mines)
-
-    const win_prob = numerador/denominador
-
-    const fairMultiplier = 1/win_prob
-
-    //Si es vol configurar, aqui hi ha el dumb_tax
-    const houseEdge = 0.03
-    const multiplier = Math.floor(fairMultiplier * (1 - houseEdge)*100)/100
+    const multiplier = getMultiplier(maxCells, checkedCells, partida.mines)
 
     const query2 = `UPDATE minesweeper SET checkedCells = '${JSON.stringify(partida.checkedCells)}' WHERE hash = '${req.params.hex}'`
     await pool.query(query2)
 
-    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells), multiplier: multiplier })
+    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells), multiplier: multiplier, bet: partida.bet })
 })
 
 async function gameExists(user_id, gamemode) {
@@ -351,7 +332,22 @@ async function gameExists(user_id, gamemode) {
     }
 }
 
-//NO TOCAR; D'ALGUNA MANERA FUNCIONA
+function getMultiplier(maxCells, checkedCells, mines) {
+    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-mines)
+    const denominador = probForm(maxCells, maxCells - mines)
+
+    const win_prob = numerador/denominador
+
+    const fairMultiplier = 1/win_prob
+
+    //Si es vol configurar, aqui hi ha el dumb_tax
+    const houseEdge = 0.03
+    const multiplier = Math.max(Math.floor(fairMultiplier * (1 - houseEdge)*100)/100, 1)
+
+    return multiplier
+}
+
+//NO TOCAR; D'ALGUNA MANERA FUNCIONA, es una funcio per a calcular el multiplicador del buscamines
 function probForm(a, b) {
     var a1 = a-b
     var a2 = a
