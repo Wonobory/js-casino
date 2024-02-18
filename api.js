@@ -97,7 +97,31 @@ app.post('/minesweeper-game/:hex/get-game', async (req, res) => {
     })
 })
 
+app.post('/get-balance', async (req, res) => {
+    if (!req.cookies.user_id) {
+        res.status(403).json({ error: "No estás logeado" })
+        return res.end()
+    }
+
+    const query = `SELECT * FROM users WHERE id = '${req.cookies.user_id}'`
+    pool.query(query, (err, result) => {
+        if (err) {
+            res.status(500)
+            return res.end()
+        }
+
+        if (!result.length) {
+            res.status(403)
+            return res.end()
+        }
+
+        res.status(200).json({ balance: result[0].money })
+        return res.end()
+    })
+})
+
 app.post('/minesweeper/create-game', async (req, res) => {
+    console.log(req.body)
     if (!req.body.bet || !req.body.size || !req.body.mines) {
         res.status(400).json({ error: "Faltan parametros (bet, size, mines)" })
         return res.end()
@@ -106,13 +130,17 @@ app.post('/minesweeper/create-game', async (req, res) => {
     req.body.bet = parseFloat(req.body.bet)
     req.body.mines = parseInt(req.body.mines)
 
-    if (req.body.bet < 0) {
-        res.status(400).json({ error: "La apuesta no puede ser negativa" })
+    if (req.body.bet <= 0) {
+        res.status(402).json({ error: "Bet cannot be negative" })
         return res.end()
     }
 
-    if (req.body.mines > 20 && req.body.mines > 1) {
-        res.status(400).json({ error: "El numero de minas no puede ser superior a 20 o inferior a 1" })
+    if (req.body.mines > 24) {
+        res.status(401).json({ error: "Mines cannot be more than 24" })
+        return res.end()
+    }
+    if (req.body.mines < 1) {
+        res.status(401).json({ error: "Mines cannot be less than 1" })
         return res.end()
     }
 
@@ -126,17 +154,31 @@ app.post('/minesweeper/create-game', async (req, res) => {
         return res.end()
     }
 
-
     //remove money from user
     
     //TODO: var si l'usuari ja esta en una partida de buscamines o no
 
     const gameexists = await gameExists(req.cookies.user_id, 1)
     if (gameexists) {
-        res.status(400).json({error: "Ya estás en una partida"})
+        res.status(409).json({error: "Ya estás en una partida", hash: gameexists})
         return res.end();
     }
 
+    const queryUsers = `SELECT * FROM users WHERE id = '${req.cookies.user_id}'`
+    const resultsUsers = await pool.query(queryUsers)
+
+    if (!resultsUsers.length) {
+        res.status(400).json({ error: "No se ha encontrado el usuario" })
+        return res.end()
+    }
+
+    if (resultsUsers[0].money < req.body.bet) {
+        res.status(402).json({ error: "No tienes suficiente dinero" })
+        return res.end()
+    }
+
+    const queryMoney = `UPDATE users SET money = ${resultsUsers[0].money - req.body.bet} WHERE id = '${req.cookies.user_id}'`
+    pool.query(queryMoney)
 
     matrix = []
     for (var i = 0; i < req.body.size; i++) {
@@ -177,6 +219,47 @@ app.post('/minesweeper/create-game', async (req, res) => {
         return res.end()
     })
 })
+
+app.post('/minesweeper-game/:hex/end-game', async (req, res) => {
+    if (!req.params.hex) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+
+    const query = `SELECT * FROM minesweeper WHERE hash = '${req.params.hex}'`
+    result = await pool.query(query)
+
+    if (!result.length) {
+        res.status(400).json({ error: "No se ha encontrado la partida" })
+        return res.end()
+    }
+
+    const partida = result[0]
+
+    if (partida.user_id != req.cookies.user_id) {
+        res.status(400).json({ error: "No tienes permisos para jugar esta partida" })
+        return res.end()
+    }
+
+    if (partida.isGameActive == 0) {
+        res.status(400).json({ error: "La partida ya ha terminado" })
+        return res.end()
+    }
+
+    partida.checkedCells = JSON.parse(partida.checkedCells)
+
+    const query2 = `UPDATE minesweeper SET isGameActive = 0 WHERE hash = '${req.params.hex}'`
+    await pool.query(query2)
+
+    const multiplier = getMultiplier(partida.size**2, partida.checkedCells.reduce((a, b) => a.concat(b)).filter(x => x == 1).length, partida.mines)
+
+    const query3 = `UPDATE users SET money = money + ${partida.bet * multiplier} WHERE id = '${req.cookies.user_id}'`
+    await pool.query(query3)
+
+    res.status(200).json({ message: "Partida terminada", multiplier: multiplier, bet: partida.bet })
+    return res.end()
+})
+
 
 app.post('/minesweeper-game/:hex/reveal-mines', async (req, res) => {
     if (!req.params.hex) {
@@ -300,7 +383,7 @@ app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
         const query = `UPDATE minesweeper SET isGameActive = 0, checkedCells = '${JSON.stringify(partida.checkedCells)}' WHERE hash = '${req.params.hex}'`
         await pool.query(query)
 
-        res.status(200).json({ cellResult: 1, currentGame: partida.checkedCells })
+        res.status(200).json({ cellResult: 1, currentGame: partida.checkedCells, isGameActive: 0})
         return res.end()
     }
 
@@ -309,10 +392,25 @@ app.post('/minesweeper-game/:hex/check-cell', async (req, res) => {
 
     const multiplier = getMultiplier(maxCells, checkedCells, partida.mines)
 
+    if (checkedCells == partida.size**2 - partida.mines) {
+        partida.isGameActive = false
+
+        const query = `UPDATE minesweeper SET isGameActive = 0, checkedCells = '${JSON.stringify(partida.checkedCells)}' WHERE hash = '${req.params.hex}'`
+        await pool.query(query)
+
+        const query3 = `UPDATE users SET money = money + ${partida.bet * multiplier} WHERE id = '${req.cookies.user_id}'`
+        await pool.query(query3)
+
+        res.status(200).json({ cellResult: 0, currentGame: partida.checkedCells, multiplier: multiplier, bet: partida.bet, isGameActive: 0})
+        return res.end()
+    }
+
+    
+
     const query2 = `UPDATE minesweeper SET checkedCells = '${JSON.stringify(partida.checkedCells)}' WHERE hash = '${req.params.hex}'`
     await pool.query(query2)
 
-    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells), multiplier: multiplier, bet: partida.bet })
+    res.status(200).json({ cellResult: 0, currentGame: JSON.stringify(partida.checkedCells), multiplier: multiplier, bet: partida.bet, isGameActive: 1})
 })
 
 async function gameExists(user_id, gamemode) {
@@ -326,7 +424,7 @@ async function gameExists(user_id, gamemode) {
             const result = await pool.query(query)
 
             if (result.length) {
-                return result[0].id
+                return result[0].hash
             }
             return 0
     }

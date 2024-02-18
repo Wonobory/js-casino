@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,29 +12,58 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="/css/all.css">
+    <script src="/js/load-game.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="config-column">
-            <label>Bet amount:</label>
-            <input type="number" id="bet-amount" placeholder="Bet amount">
-            <label>Number of mines:</label>
-            <div class="mines-input">
-                <div class="mine-input-number" onclick="selectMine(this, 1)">1</div>
-                <div class="mine-input-number" onclick="selectMine(this, 3)">3</div>
-                <div class="mine-input-number" onclick="selectMine(this, 5)">5</div>
-                <div class="mine-input-number" onclick="selectMine(this, 10)">10</div>
-                <div class="mine-input-number"  id='custom-mines' onclick="switchCustom(this)">
-                    Custom
-                </div>
+    <header>
+        <div class="logo-container">
+            <div>
+                <img src="/svg/espinaca-logo.png" class="logo">
+                <h1>Cantina Espinaca</h1>
             </div>
-            <input type="hidden" id="mines" placeholder="Number of mines">
-
-            <button id="start" class="start-game" onclick="createGame(document.getElementById('bet-amount').value, document.getElementById('mines').value, 5)">Start game</button>
-        </div>
-        <div id="minesweeper">
             
         </div>
-    </div>
+
+        <div class="user-data">
+            <div class="balance-container">
+                <div class="currency-container">
+                    <span>$</span>
+                </div>
+
+                <span class="balance-text" id="balance">0,00</span>
+                
+                <div class="deposit-button">
+                    Deposit
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="window-minesweeper">
+        <div class="container">
+            <div class="config-column">
+                <label>Bet amount:</label>
+                <input type="number" id="bet-amount" placeholder="Bet amount">
+                <label>Number of mines:</label>
+                <div class="mines-input">
+                    <div class="mine-input-number" onclick="selectMine(this, 1)">1</div>
+                    <div class="mine-input-number" onclick="selectMine(this, 3)">3</div>
+                    <div class="mine-input-number" onclick="selectMine(this, 5)">5</div>
+                    <div class="mine-input-number" onclick="selectMine(this, 10)">10</div>
+                    <div class="mine-input-number"  id='custom-mines' onclick="switchCustom(this)">
+                        Custom
+                    </div>
+                </div>
+                <input type="hidden" id="mines" placeholder="Number of mines" value="0">
+                <span id="message-display"></span>
+    
+                <button id="start" class="start-game" onclick="createGame(document.getElementById('bet-amount').value, document.getElementById('mines').value, 5)">Start game</button>
+            </div>
+            <div id="minesweeper">
+                
+            </div>
+        </div>
+    </div>    
 </body>
 </html>

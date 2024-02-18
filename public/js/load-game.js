@@ -1,6 +1,7 @@
 
 document.addEventListener('DOMContentLoaded', (event) => {
     loadGame(hex)
+    updateBalance()
 
     const minesInput = document.getElementById('mines')
     const betInput = document.getElementById('bet-amount')
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 }
                 betInput.value = data.bet
                 
-                drawMinesweeper(data.game)
+                drawMinesweeper(data.game, data.isGameActive)
             },
             error: function (err) {
                console.log(err)

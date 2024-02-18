@@ -9,7 +9,7 @@ let Game = [[0,0,0,0,0],
             [0,0,0,0,0],
             [0,0,0,0,0]]
 
-function drawMinesweeper(game) {
+function drawMinesweeper(game, isGameActive) {
     var where = document.getElementById("minesweeper");
     
     game = JSON.parse(game)
@@ -87,6 +87,12 @@ function drawMinesweeper(game) {
         }
     }
 
+    if (!isGameActive) {
+      blockCells(Game)
+      revealMines(hex, Game)
+      switchToNewGame()
+    }
+
     if (hasToBlock) {
       blockCells(game)
       revealMines(hex, Game)
@@ -123,7 +129,7 @@ function switchToNewGame() {
   minesInput.disabled = false
   betInput.disabled = false
 
-  minesInput.value = ''
+  minesInput.value = '0'
   betInput.value = ''
 
   betInput.classList.remove('blocked')
@@ -142,8 +148,12 @@ function switchToNewGame() {
     }
     
   })
-  document.getElementById('custom-mines-input').disabled = false
-  document.getElementById('custom-mines-input').classList.remove('blocked')
+
+  if (document.getElementById('custom-mines-input')) {
+    document.getElementById('custom-mines-input').disabled = false
+    document.getElementById('custom-mines-input').classList.remove('blocked')
+  }
+  
 
   if (document.getElementById('custom-mines-input')) {
     switchCustom(document.getElementById('custom-mines'))
@@ -180,7 +190,6 @@ function revealMines(hex, game) {
     type: 'POST',
     headers: defHeaders,
     success: function (data) {
-      console.log(data)
       matrix = JSON.parse(data.mines)
 
       for (var i = 0; i < matrix.length; i++) {
@@ -202,6 +211,20 @@ function revealMines(hex, game) {
   })
 }
 
+function updateBalance() {
+  $.ajax({
+    url: '/get-balance',
+    type: 'POST',
+    headers: defHeaders,
+    success: function (data) {
+      console.log(data)
+      document.getElementById('balance').innerText = `${parseFloat(data.balance.toFixed(2)).toLocaleString()}`
+    },
+    error: function (err) {
+      console.log(err)
+    }
+  })
+}
 
 function disabledMinesweeper(dimension) {
   var where = document.getElementById("minesweeper");
@@ -261,11 +284,20 @@ async function checkCell(x, y) {
     }),
     success: async function (data) {
       if (data.cellResult == 0) {
-
+        
         document.getElementById("cell" + y + x).className = "cell checked";
         document.getElementById("cell" + y + x).onclick = null;
         Game[y][x] = 1
         changeImg(document.getElementById("img-cell" + y + x), "checked")
+
+        if (!data.isGameActive) {
+          blockCells(Game)
+          revealMines(hex, Game)
+          switchToNewGame()
+          updateBalance()
+          minesweeperPopup(data.multiplier, data.bet * data.multiplier)
+          return
+        }
 
         const div = document.createElement("div")
         const span = document.createElement("span")
@@ -322,7 +354,12 @@ function createGame(bet, mines, size) {
       window.location.href = `/minesweeper-game/${data.id}`
     },
     error: function (err) {
-      console.log(err)
+      if (err.status == 409) {
+        window.location.href = `minesweeper-game/${err.responseJSON.hash}`
+      }
+      if (err.status == 401) {
+        minesError(err.responseJSON.error)
+      }
     }
   })
 }
@@ -384,6 +421,73 @@ function switchCustom(element) {
     input.value = '1'
     selectMine(element, 1)
   }
+}
+
+async function checkOut() {
+  $.ajax({
+    url: `${hex}/end-game`,
+    type: 'POST',
+    headers: defHeaders,
+    success: async function (data) {
+      console.log(data)
+      updateBalance()
+      revealMines(hex, Game)
+      blockCells(Game)
+      switchToNewGame()
+      minesweeperPopup(data.multiplier, data.bet * data.multiplier)
+    },
+    error: function (err) {
+      console.log(err)
+    }
+  })
+
+}
+
+function minesError(message) {
+  $('.mines-input').effect("shake", {times: 5, distance: 5}, 300);
+  const loginDisplay = document.getElementById('message-display')
+  loginDisplay.innerText = message
+}
+
+async function minesweeperPopup(multiplier, gain) {
+  const minesweeper = document.getElementById('minesweeper')
+    const popup = document.createElement('div')
+
+      const title = document.createElement('h3')
+      const popupTextContainer = document.createElement('div')
+        const popupText1 = document.createElement('span')
+        const popupText2 = document.createElement('span')
+      const dimissButton = document.createElement('button')
+  
+  popup.className = 'popup'
+  title.className = 'popup-title'
+  popupTextContainer.className = 'popup-text-container'
+  popupText1.className = 'popup-text'
+  popupText2.className = 'popup-text-gain'
+  dimissButton.className = 'popup-dismiss'
+
+  popup.style.opacity = '0'
+  
+
+  title.innerText = 'x'+multiplier
+  popupText1.innerText = 'You won '
+  popupText2.innerText = `$${parseFloat(gain.toFixed(3)).toLocaleString()}`
+  dimissButton.innerText = 'Dismiss'
+  dimissButton.onclick = async function() {
+    popup.style.opacity = '0'
+    await timeout(200)
+    minesweeper.removeChild(popup)
+  }
+
+  popupTextContainer.appendChild(popupText1)
+  popupTextContainer.appendChild(popupText2)
+
+  popup.appendChild(title)
+  popup.appendChild(popupTextContainer)
+  popup.appendChild(dimissButton)
+
+  minesweeper.appendChild(popup)
+  $('.popup').animate({opacity: 1}, 200)
 }
 
 function setCookie(name,value,days) {
