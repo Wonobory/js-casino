@@ -315,7 +315,7 @@ app.post('/minesweeper-game/:hex/get-multiplier', async (req, res) => {
     }
 
     if (partida.isGameActive == 0) {
-        res.status(400).json({ error: "La ya ha terminado" })
+        res.status(400).json({ error: "La partida ya ha terminado" })
         return res.end()
     }
 

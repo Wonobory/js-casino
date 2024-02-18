@@ -6,12 +6,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const minesInput = document.getElementById('mines')
     const betInput = document.getElementById('bet-amount')
 
-    function loadGame(hex) {
+    async function loadGame(hex) {
         $.ajax({
             url: `${hex}/get-game`,
             type: 'POST',
             headers: defHeaders,
-            success: function (data) {
+            success: async function (data) {
                 console.log(data)
     
                 minesInput.value = data.mines
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 }
                 betInput.value = data.bet
                 
-                drawMinesweeper(data.game, data.isGameActive)
+                await drawMinesweeper(data.game, data.isGameActive)
             },
             error: function (err) {
                console.log(err)

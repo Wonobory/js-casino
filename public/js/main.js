@@ -1,3 +1,4 @@
+
 const defHeaders = {
   'Accept': 'application/json',
   'Content-Type': 'application/json'
@@ -9,7 +10,7 @@ let Game = [[0,0,0,0,0],
             [0,0,0,0,0],
             [0,0,0,0,0]]
 
-function drawMinesweeper(game, isGameActive) {
+async function drawMinesweeper(game, isGameActive) {
     var where = document.getElementById("minesweeper");
     
     game = JSON.parse(game)
@@ -20,6 +21,15 @@ function drawMinesweeper(game, isGameActive) {
     }
 
     let hasToBlock = false
+
+    for (var i = 0; i < game.length; i++) {
+      for (var j = 0; j < game[i].length; j++) {
+        if (game[i][j] == 0) {
+          hasToBlock = false
+        }
+      }
+    }
+
 
     for (var i = 0; i < game.length; i++) {
         element = document.createElement("div");
@@ -35,6 +45,8 @@ function drawMinesweeper(game, isGameActive) {
           if (game[i][j] == 0) {
             element = document.createElement("div");
             img = document.createElement("img");
+
+            
 
             element.className = "cell unchecked";
             element.id = "cell" + i + j;
@@ -54,6 +66,10 @@ function drawMinesweeper(game, isGameActive) {
             element.appendChild(img);
 
             document.getElementById("row" + i).appendChild(element);
+
+            if (isGameActive && !hasToBlock) {
+              flipAnimation($("#cell" + i + j)[0])
+            }
           } else if (game[i][j] == 1) {
             element = document.createElement("div");
             element.className = "cell checked";
@@ -68,10 +84,15 @@ function drawMinesweeper(game, isGameActive) {
             element.appendChild(img);
 
             document.getElementById("row" + i).appendChild(element);
+
+            if (isGameActive && !hasToBlock) {
+              flipAnimation($("#cell" + i + j)[0])
+            }
           } else if (game[i][j] == 2) {
             element = document.createElement("div");
             element.className = "cell mine";
             element.id = "cell" + i + j;
+            
 
             img = document.createElement("img");
             img.src = "/svg/bomba.png";
@@ -84,18 +105,23 @@ function drawMinesweeper(game, isGameActive) {
             document.getElementById("row" + i).appendChild(element);
             hasToBlock = true
           }
+          
         }
-    }
 
+        
+    }
+    
     if (!isGameActive) {
       blockCells(Game)
-      revealMines(hex, Game)
+      console.log('blocked')
+      await revealMines(hex, Game)
       switchToNewGame()
     }
 
     if (hasToBlock) {
+      console.log('blocked2')
       blockCells(game)
-      revealMines(hex, Game)
+      await revealMines(hex, Game)
       switchToNewGame()
     } else {
       $.ajax({
@@ -184,23 +210,27 @@ function blockCells(game) {
   }
 }
 
-function revealMines(hex, game) {
-  $.ajax({
+async function revealMines(hex, game) {
+  await $.ajax({
     url: `${hex}/reveal-mines`,
     type: 'POST',
     headers: defHeaders,
-    success: function (data) {
+    success: async function (data) {
       matrix = JSON.parse(data.mines)
 
       for (var i = 0; i < matrix.length; i++) {
         for (var j = 0; j < matrix[i].length; j++) {
           if (matrix[i][j] == 1 && game[i][j] == 0) {
+            flipAnimation($("#cell" + i + j)[0])
             document.getElementById("cell" + i + j).className = "cell mine revealed";
             changeImg(document.getElementById("img-cell" + i + j), "bomb")
+            
           }
           if (matrix[i][j] == 0 && game[i][j] == 0) {
+            flipAnimation($("#cell" + i + j)[0])
             document.getElementById("cell" + i + j).className = "cell checked revealed";
             changeImg(document.getElementById("img-cell" + i + j), "checked")
+            
           }
         }
       }
@@ -290,14 +320,17 @@ async function checkCell(x, y) {
         Game[y][x] = 1
         changeImg(document.getElementById("img-cell" + y + x), "checked")
 
+        flipAnimation($("#cell" + y + x)[0])
+
         if (!data.isGameActive) {
           blockCells(Game)
-          revealMines(hex, Game)
+          await revealMines(hex, Game)
           switchToNewGame()
           updateBalance()
           minesweeperPopup(data.multiplier, data.bet * data.multiplier)
           return
         }
+        
 
         const div = document.createElement("div")
         const span = document.createElement("span")
@@ -322,13 +355,14 @@ async function checkCell(x, y) {
 
       } else if (data.cellResult == 1) {
         const cell = document.getElementById("cell" + y + x)
+
         cell.className = "cell mine";
         cell.onclick = null;
         Game[y][x] = 2
 
         changeImg(document.getElementById("img-cell" + y + x), "bomb")
-        $('#cell' + y + x).effect("shake", {times: 5}, 500);
-        revealMines(hex, Game)
+        $('#cell' + y + x).effect("shake", {times: 5, distance: 3}, 400);
+        await revealMines(hex, Game)
         blockCells(Game)
         switchToNewGame()
       }
@@ -431,7 +465,7 @@ async function checkOut() {
     success: async function (data) {
       console.log(data)
       updateBalance()
-      revealMines(hex, Game)
+      await revealMines(hex, Game)
       blockCells(Game)
       switchToNewGame()
       minesweeperPopup(data.multiplier, data.bet * data.multiplier)
@@ -488,6 +522,13 @@ async function minesweeperPopup(multiplier, gain) {
 
   minesweeper.appendChild(popup)
   $('.popup').animate({opacity: 1}, 200)
+}
+
+function flipAnimation(cell) {
+  cell.style.transform = "rotateY(90deg)"
+  cell.animate({transform: "rotateY(0deg)"}, 150).onfinish = function() {
+    cell.style.transform = "rotateY(0deg)"
+  }
 }
 
 function setCookie(name,value,days) {

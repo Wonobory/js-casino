@@ -34,7 +34,7 @@ html {
     margin-bottom: 1em;
     border-radius: 25px;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+
 
     position: relative;
 
@@ -45,13 +45,15 @@ html {
 
 .unchecked:hover {
     background: #1D1E33;
+    
 }
+
 
 .checked {
     background: #D8AB39;
     cursor: not-allowed;
-    
 }
+
 
 .window-minesweeper {
     display: flex;
@@ -110,6 +112,7 @@ html {
     display: flex;
     flex-direction: column;
     position: relative;
+    min-width: 720px;
 }
 
 .config-column {
