@@ -10,6 +10,11 @@ let Game = [[0,0,0,0,0],
             [0,0,0,0,0],
             [0,0,0,0,0]]
 
+
+document.addEventListener('DOMContentLoaded', (event) => {
+  updateBalance()
+})
+
 async function drawMinesweeper(game, isGameActive) {
     var where = document.getElementById("minesweeper");
     

@@ -64,17 +64,19 @@ html {
 .popup {
     position: absolute;
     background: #121220;
-    width: 16em;
+    min-width: 14em;
+    width: auto;
     height: 16em;
     left: 25%;
+    padding-left: 1em;
     color: white;
+    padding-right: 1em;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     border-radius: 6px;
     font-family: 'Roboto';
     text-align: center;
-
     transition: all 0.2s ease-in-out;
 }
 

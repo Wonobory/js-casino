@@ -18,6 +18,18 @@ const crypto = require("crypto")
 
 const { promisify } = require('util')
 
+const {execSync} = require('child_process');
+
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: { origin: 'http://localhost:777', credentials: true},
+    cookie: true
+});
+
+http.listen(7777, () => {
+    console.log('listening on *:7777');
+});
+
 const pool = mysql.createPool({
     host: "localhost",
     user: "root",
@@ -459,3 +471,157 @@ function probForm(a, b) {
     }
     return a2
 }
+
+
+/*
+
+CRASH GAME
+
+*/
+
+
+//GET THE MAX MULTIPLIER
+
+function divisible(hash, mod) {
+    // We will read in 4 hex at a time, but the first chunk might be a bit smaller
+    // So ABCDEFGHIJ should be chunked like  AB CDEF GHIJ
+    var val = 0;
+  
+    var o = hash.length % 4;
+    for (var i = o > 0 ? o - 4 : 0; i < hash.length; i += 4) {
+        val = ((val << 16) + parseInt(hash.substring(i, i + 4), 16)) % mod;
+        //this code checks if the hash is divisible by the mod
+    }
+  
+    return val === 0;
+}
+
+const salt = "0xd2867566759e9158bda9bf93b343bbd9aa02ce1e0c5bc2b37a2d70d391b04f14";
+  
+function crashPointFromHash(serverSeed) {
+    const hash = crypto
+      .createHmac("sha256", serverSeed)
+      .update(salt)
+      .digest("hex");
+  
+    const hs = parseInt(100 / 4);
+    if (divisible(hash, hs)) {
+        return 1;
+    }
+  
+    const h = parseInt(hash.slice(0, 52 / 4), 16);
+    const e = Math.pow(2, 52);
+  
+    console.log(h, e);
+  
+    return Math.floor((100 * e - h) / (e - h)) / 100.0;
+}
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const crashGameEnabled = true
+const rate = 100
+let iteration = 1
+
+let multiplier = 1
+let lastMultiplier = 1
+
+let newGameStarting = true
+let newGameCooldown = 15000
+
+let joiningPlayers = []
+let hash = ""
+
+let maxMultiplier = 1.00
+
+let tempo = 0
+
+const crashGame = io.of('/crash');
+
+
+
+let crashStatus = 1;
+let graphData = []
+
+app.post('/crash/get-status', (req, res) => {
+    switch (crashStatus) {
+        case 1:
+            res.status(200).json({ status: 1, remaningTime: newGameCooldown, joinedPlayers: joiningPlayers, graphData: graphData })
+            res.end()
+        case 2:
+            res.status(200).json({ status: 2, graphData: graphData, iteration: iteration })
+            res.end()
+    }
+});
+
+(async ()=> {
+    while (crashGameEnabled) {
+        await timeout(rate)
+        tempo += rate
+        //temps fins a començar la següent partida
+        if (newGameStarting) {
+            iteration = 0
+            if (newGameCooldown > 0) {
+                newGameCooldown -= rate
+                console.log("New game starting in " + newGameCooldown)
+                continue
+            } else {
+                newGameStarting = false
+                newGameCooldown = 5000
+
+                multiplier = 1
+
+                hash = crypto.randomBytes(16).toString("hex")
+                
+                if (joiningPlayers.length) {
+                    for (let i = 0; i < joiningPlayers.length; i++) {
+                        var query = `INSERT INTO crash (hash, user_id, bet, isGameActive) VALUES ('${hash}', ${joiningPlayers[i].user_id}, ${joiningPlayers[i].bet}, 1);`
+                        await pool.query(query)
+                    }
+                }
+
+                crashGame.emit('newGame')
+                
+                console.log("New game starting")
+            }
+        }
+        
+        if (iteration == 0) {
+            maxMultiplier = crashPointFromHash(hash)
+        }
+
+        if (multiplier > maxMultiplier) {
+            newGameStarting = true
+            joiningPlayers = []
+
+            //update all crash games where hash == hash, to set isGameActive to 0
+            var query = `UPDATE crash SET isGameActive = 0 WHERE hash = '${hash}'`
+            await pool.query(query)
+            
+            crashGame.emit('crash', maxMultiplier)
+            tempo = 0
+            continue
+        }
+        
+        iteration++
+        lastMultiplier = multiplier
+        multiplier = 1+(((iteration*0.15)*(iteration*0.04)*(1+(iteration*0.002)))/400)*2
+        crashGame.emit('multiplier',  {multiplier: multiplier, iteration: iteration, tempo: tempo})
+
+        console.log(`Multiplier: ${multiplier} / Max: ${maxMultiplier}`)
+    }
+})()
+
+app.get('/crash', (req, res) => {
+    res.sendFile(path.join(__dirname + '/client/games/crash/crash.html'));
+})
+
+crashGame.on('connection', (socket) => {
+    let user_id = parseInt(socket.handshake.headers.cookie.split("user_id=")[1].split(";")[0])
+    socket.on('join', async (data) => {
+       joiningPlayers.push({user_id: user_id, bet: parseFloat(data)})
+    })
+})
+        

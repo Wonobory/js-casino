@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscaminas</title>
+    
+    <link rel="stylesheet" href="/css/buscaminasStyle.css">
+    <script defer src="/js/games/crashLogic.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="/css/all.css">
+    <link rel="stylesheet" href="/css/crash.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <div>
+                <img src="/svg/espinaca-logo.png" class="logo">
+                <h1>Cantina Espinaca</h1>
+            </div>
+            
+        </div>
+
+        <div class="user-data">
+            <div class="balance-container">
+                <div class="currency-container">
+                    <span>$</span>
+                </div>
+
+                <span class="balance-text" id="balance">0,00</span>
+                
+                <div class="deposit-button">
+                    Deposit
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="window-crash">
+        <canvas id="render" width="700" height="500">
+
+        </canvas>
+
+        <div class="multiplier-container">
+            <h1 id="multiplier">x1.0</h1>
+            <span></span>
+        </div>
+        
+        <h1 id="segons">s</h1>
+    </div>    
+</body>
+</html>
