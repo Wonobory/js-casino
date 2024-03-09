@@ -443,12 +443,7 @@ async function gameExists(user_id, gamemode) {
 }
 
 function getMultiplier(maxCells, checkedCells, mines) {
-    const numerador = probForm(maxCells - checkedCells, maxCells - checkedCells-mines)
-    const denominador = probForm(maxCells, maxCells - mines)
-
-    const win_prob = numerador/denominador
-
-    const fairMultiplier = 1/win_prob
+    const fairMultiplier = 1/calcMultiplier(checkedCells, mines)
 
     //Si es vol configurar, aqui hi ha el dumb_tax
     const houseEdge = 0.03
@@ -457,21 +452,16 @@ function getMultiplier(maxCells, checkedCells, mines) {
     return multiplier
 }
 
-//NO TOCAR; D'ALGUNA MANERA FUNCIONA, es una funcio per a calcular el multiplicador del buscamines
-function probForm(a, b) {
-    var a1 = a-b
-    var a2 = a
-
-    for (var i = 0; i < a1; i++) {
-        if (!a2) {
-            a2 = a-i
-            continue
-        }
-        a2*=a-i
+function calcMultiplier(checkedCells, mines) {
+    const size = 25 //5x5 mine grid = 25 cells
+    chance = 1
+    
+    for (i = 0; i < checkedCells; i++) {
+        chance *= (size - mines - i) / (size - i)
     }
-    return a2
-}
 
+    return chance
+}
 
 /*
 
@@ -529,7 +519,7 @@ let multiplier = 1
 let lastMultiplier = 1
 
 let newGameStarting = true
-let newGameCooldown = 15000
+let newGameCooldown = 5000
 
 let joiningPlayers = []
 let hash = ""

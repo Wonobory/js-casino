@@ -138,22 +138,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         ctx.stroke();
 
+        //CALCULAR LA ROTACIO
+        
+        /*
+        let x0 = margen + (datos.length - 2) * pasoX;
+        let y0 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
+
+        let x1 = margen + (datos.length - 1) * pasoX;
+        let y1 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
+
+        let x2 = margen + (datos.length - 1) * pasoX;
+        let y2 = canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo));
+
+        let a = Math.abs(x0-x1)
+        let b = Math.abs(y1-y2)
+        let c = Math.sqrt(a*a + b*b)
+
+        let angle = Math.acos(a/c)
+        ctx.rotate(-angle)
+
+        //cos(x) = a / sqrt(a^2 + b^2)
 
         //DRAW ROCKET
-        
+        console.log('Angle', angle)
         ctx.drawImage(img, margen + (datos.length - 1) * pasoX - 32.5, canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))- 38, 75, 75);
+        ctx.rotate(angle)
+        */
+
+        ctx.beginPath();
+        ctx.arc(margen + (datos.length - 1) * pasoX , canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))-1, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgb(123,108,168)'
+        ctx.strokeStyle = 'rgb(123,108,168)'
+        ctx.fill();
+        ctx.stroke();
     }
 
     function multiplierAnimation() {
-        if (!document.getElementById('multiplier').style.fontSize) {
-            document.getElementById('multiplier').style.fontSize = '50px'
-        }
-        currentSize = parseInt(document.getElementById('multiplier').style.fontSize)
-        currentSize += 60
-        document.getElementById('multiplier').style.fontSize = currentSize + 'px'
+        const multiplier = document.getElementById('multiplier')
+        multiplier.classList.add('multiplier-animation')
         setTimeout(() => {
-            currentSize -= 60
-            document.getElementById('multiplier').style.fontSize = currentSize + 'px'
+            multiplier.classList.remove('multiplier-animation')
         }, 300)
     }
 
@@ -215,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         serverTempo = data.tempo
         datos.push(multiplier)
         setTimeout(() => {
-        datos.push(multiplier)}, 40)
+        datos.push(multiplier)}, 20)
 
         if (!gameStarted) {
             startGame()
@@ -291,11 +315,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
             document.getElementById('multiplier').innerHTML = 'x'+datos[datos.length-1].toFixed(2)
+            /*
             if (lastMultiplier != multiplier && parseInt(multiplier) > lastMultiplierDivisible) {
                 multiplierAnimation()
                 console.log('animation')
                 lastMultiplierDivisible = parseInt(multiplier)
             }
+            */
             
             iteration++
             segons += rate

@@ -40,17 +40,37 @@
         </div>
     </header>
 
-    <div class="window-crash">
-        <canvas id="render" width="700" height="500">
 
-        </canvas>
-
-        <div class="multiplier-container">
-            <h1 id="multiplier">x1.0</h1>
-            <span></span>
+    <div class="crash-container">
+        <div class="user-menu">
+            <label>Bet:</label>
+            <input type="number" name="" id="bet-amount">
+    
+            <button class="start-game">Place Bet</button>
         </div>
-        
-        <h1 id="segons">s</h1>
-    </div>    
+    
+        <div class="window-crash">
+            <canvas id="render" width="700" height="500">
+    
+            </canvas>
+    
+            <div class="new-game-container hidden">
+                <div class="crash-background">
+                    
+                </div>
+                <div class="new-game-text-container ">
+                    <h3 class="new-game-header">New game starting in:</h3>
+                    <h1 id="new-game-timer">15.00s</h1>
+                </div>
+            </div>
+    
+            <div class="multiplier-container">
+                <h1 id="multiplier">x1.0</h1>
+                <span>Total profit: $122.45</span>
+            </div>
+            
+            <h1 id="segons">s</h1>
+        </div>
+    </div>        
 </body>
 </html>
