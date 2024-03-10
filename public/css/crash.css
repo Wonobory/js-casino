@@ -126,3 +126,12 @@ button {
 .joined-button {
     background: #44A64A;
 }
+
+.crash-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 70vh;
+    width: 100%;
+}

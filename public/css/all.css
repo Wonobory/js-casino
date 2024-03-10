@@ -48,6 +48,8 @@ body {
     border-radius: 5px;
 
     font-weight: 500;
+
+    position: relative;
 }
 
 
@@ -90,4 +92,15 @@ header {
 
 body {
     margin-top: 7em;
+}
+
+.balance-increment {
+    position: absolute;
+    top: 3em;
+    left: -3.3em;
+    text-align: right;
+    width: 9em;
+    color: #44a64a;
+    font-size: 14px;
+    font-weight: bold;
 }

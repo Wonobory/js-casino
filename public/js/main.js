@@ -1,4 +1,3 @@
-
 const defHeaders = {
   'Accept': 'application/json',
   'Content-Type': 'application/json'

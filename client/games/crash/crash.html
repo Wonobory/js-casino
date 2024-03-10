@@ -41,34 +41,36 @@
     </header>
 
 
-    <div class="crash-container">
-        <div class="user-menu" id="user-menu">
-            <label>Bet:</label>
-            <input type="number" id="bet-amount">
-    
-            <button id="bet-button" class="start-game" onclick="placeBet()">Place Bet</button>
-        </div>
-    
-        <div class="window-crash">
-            <canvas id="render" width="700" height="500">
-    
-            </canvas>
-    
-            <div id='new-game-modal' class="new-game-container hidden">
-                <div class="crash-background">
-                    
+    <div class="crash-center">
+        <div class="crash-container">
+            <div class="user-menu" id="user-menu">
+                <label>Bet:</label>
+                <input type="number" id="bet-amount">
+        
+                <button id="bet-button" class="start-game" onclick="placeBet()">Place Bet</button>
+            </div>
+        
+            <div class="window-crash">
+                <canvas id="render" width="700" height="500">
+        
+                </canvas>
+        
+                <div id='new-game-modal' class="new-game-container hidden">
+                    <div class="crash-background">
+                        
+                    </div>
+                    <div class="new-game-text-container ">
+                        <h3 class="new-game-header">New game starting in:</h3>
+                        <h1 id="new-game-timer">15.00s</h1>
+                    </div>
                 </div>
-                <div class="new-game-text-container ">
-                    <h3 class="new-game-header">New game starting in:</h3>
-                    <h1 id="new-game-timer">15.00s</h1>
+        
+                <div class="multiplier-container">
+                    <h1 id="multiplier">x1.0</h1>
+                    <span id="profit">Total profit: $122.45</span>
                 </div>
             </div>
-    
-            <div class="multiplier-container">
-                <h1 id="multiplier">x1.0</h1>
-                <span id="profit">Total profit: $122.45</span>
-            </div>
-        </div>
-    </div>        
+        </div>   
+    </div>
 </body>
 </html>

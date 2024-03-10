@@ -3,6 +3,12 @@
 const canvas = document.getElementById('render')
 const ctx = canvas.getContext('2d');
 
+
+const defHeaders = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+}
+
 // Datos para el gráfico lineal (solo como ejemplo)
 
 
@@ -430,6 +436,7 @@ function placeBet() {
             bet = amount
             console.log('didJoin set to true')
             didJoin = true
+            updateBalance()
         },
         error: (err) => {
             console.log('Error', err)
@@ -497,6 +504,43 @@ function setJoinedButton() {
     joinedButton.id = 'check-out'
 
     joinedButton.innerHTML = 'Cash-Out'
+    joinedButton.onclick = cashOut
 
     document.getElementById('user-menu').appendChild(joinedButton)
 }
+
+function cashOut() {
+    $.ajax({
+        url: '/crash/check-out',
+        method: 'POST',
+        success: (data) => {
+            console.log('Cashing out', data)
+            setBetButton()
+            disableBet()
+            didJoin = false
+            bet = 0
+            updateBalance()
+        },
+        error: (err) => {
+            console.log('Error', err)
+        }
+    })
+}
+
+function updateBalance() {
+    $.ajax({
+        url: '/get-balance',
+        type: 'POST',
+        headers: defHeaders,
+        success: function (data) {
+            console.log(data)
+            document.getElementById('balance').innerText = `${parseFloat(data.balance.toFixed(2)).toLocaleString()}`
+        },
+        error: function (err) {
+            console.log(err)
+            updateBalance()
+        }
+    })
+}
+
+updateBalance()

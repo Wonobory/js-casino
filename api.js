@@ -512,14 +512,17 @@ function timeout(ms) {
 }
 
 const crashGameEnabled = true
+
 const RATE = 100
+const NEW_GAME_COOLDOWN = 10000
+
 let iteration = 1
 
 let multiplier = 1
 let lastMultiplier = 1
 
 let newGameStarting = true
-let newGameCooldown = 10000
+let newGameCooldown = NEW_GAME_COOLDOWN
 
 let joiningPlayers = []
 let joinedPlayers = []
@@ -582,7 +585,7 @@ app.post('/crash/get-status', (req, res) => {
                 continue
             } else {
                 newGameStarting = false
-                newGameCooldown = 5000
+                newGameCooldown = NEW_GAME_COOLDOWN
 
                 multiplier = 1
 
@@ -649,6 +652,11 @@ app.post('/crash/join', async (req, res) => {
         return res.end()
     }
 
+    if (!newGameStarting) {
+        res.status(400).json({ error: "La partida ya ha empezado" })
+        return res.end()
+    }
+
     for (var i = 0; i < joiningPlayers.length; i++) {
         if (joiningPlayers[i].user_id == req.cookies.user_id) {
             res.status(400).json({ error: "Ya estás en la partida" })
@@ -679,3 +687,27 @@ async function removeMoney(user_id, bet) {
     const query2 = `UPDATE users SET money = ${newBalance} WHERE id = '${user_id}'`
     await pool.query(query2)
 }
+
+app.post('/crash/check-out', async (req, res) => {
+    if (!req.cookies.user_id) {
+        res.status(400).json({ error: "No estás logeado" })
+        return res.end()
+    }
+
+    if (crashStatus == 1) {
+        res.status(400).json({ error: "La partida aún no ha empezado" })
+        return res.end()
+    }
+
+    let bet = 0
+    for (var i = 0; i < joinedPlayers.length; i++) {
+        bet = parseInt(joinedPlayers[i].bet)
+        joinedPlayers.splice(i, 1)
+    }
+    bet *= multiplier
+
+    const query = `UPDATE users SET money = money + ${bet} WHERE id = '${req.cookies.user_id}'`
+    await pool.query(query)
+
+    res.status(200).json({ message: "Has cobrado " + bet, prize: bet})
+})
