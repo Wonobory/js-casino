@@ -721,7 +721,7 @@ app.post('/crash/join', async (req, res) => {
         return res.end()
     }
 
-    if (!checkBalance(req.cookies.user_id, req.body.bet, req.body.bet)) {
+    if (!await checkBalance(req.cookies.user_id, req.body.bet)) {
         res.status(400).json({ error: "No tienes suficiente dinero" })
         return res.end()
     }
@@ -739,16 +739,16 @@ app.post('/crash/join', async (req, res) => {
     }
 
     hasToUpdatePlayerList = true
-    removeMoney(req.cookies.user_id, req.body.bet)
+    await removeMoney(req.cookies.user_id, req.body.bet)
     joiningPlayers.push({user_id: req.cookies.user_id, bet: parseFloat(req.body.bet), name: await getName(req.cookies.user_id), hasCashOut: false, multiplier: 0, autoCashOut: parseFloat(req.body.autoCashOut)})
     res.status(200).json({ message: "Te has unido a la partida" })
 })
 
-async function checkBalance(user_id, bet, wantedBet) {
+async function checkBalance(user_id, bet) {
     const query = `SELECT * FROM users WHERE id = '${user_id}'`
     const result = await pool.query(query)
 
-    if (result[0].money < wantedBet) {
+    if (parseFloat(result[0].money) < parseFloat(bet)) {
         return false
     }
     return true
