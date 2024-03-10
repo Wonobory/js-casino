@@ -1,337 +1,502 @@
-document.addEventListener('DOMContentLoaded', async () => {
-
-    const canvas = document.getElementById('render')
-    const ctx = canvas.getContext('2d');
-
-    // Datos para el gráfico lineal (solo como ejemplo)
 
 
+const canvas = document.getElementById('render')
+const ctx = canvas.getContext('2d');
+
+// Datos para el gráfico lineal (solo como ejemplo)
 
 
-    // Configuración del gráfico
-    const margen = 40;
-    const ancho = canvas.width - 2 * margen;
-    const alto = canvas.height - 2 * margen;
 
 
-    const img = new Image();
-    img.src = '/img/crash_rocket.png';
+// Configuración del gráfico
+const margen = 40;
+const ancho = canvas.width - 2 * margen;
+const alto = canvas.height - 2 * margen;
 
-    // Función para dibujar el gráfico lineal con curvas de Bézier
-    function dibujarGraficoLinealConBezier(datos, seconds) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Calcular la distancia horizontal entre los puntos
-        const pasoX = Math.min(ancho / (datos.length - 1), 5);
-        ctx.lineWidth = 2;
+const img = new Image();
+img.src = '/img/crash_rocket.png';
 
-        // Encontrar el valor máximo en los datos
-        const valorMaximo = Math.max(Math.max(...datos), 1.8);
-        const valorMinimo = Math.min(Math.min(...datos), 0); // Valor mínimo en los datos
+// Función para dibujar el gráfico lineal con curvas de Bézier
+function dibujarGraficoLinealConBezier(datos, seconds) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = 'rgb(68,69,84)'
-        ctx.fillStyle = 'rgb(68,69,84)'
+    // Calcular la distancia horizontal entre los puntos
+    const pasoX = Math.min(ancho / (datos.length - 1), 5);
+    ctx.lineWidth = 2;
+
+    // Encontrar el valor máximo en los datos
+    const valorMaximo = Math.max(Math.max(...datos), 1.8);
+    const valorMinimo = Math.min(Math.min(...datos), 0); // Valor mínimo en los datos
+
+    ctx.strokeStyle = 'rgb(68,69,84)'
+    ctx.fillStyle = 'rgb(68,69,84)'
+    
+
+    ctx.beginPath();
+    ctx.moveTo(margen, canvas.height - margen*0.4);
+    ctx.lineTo(margen, canvas.height - margen*0.75);
+    ctx.fillText(`0s`, margen-5, canvas.height - 4);
+    ctx.stroke();
+
+    seconds = seconds / 1000
+
+
+    let modificador = 1
+    if (seconds > 20) {
+        modificador = 2
+    }
+    if (seconds > 30) {
+        modificador = 5
+    }
+    if (seconds > 60) {
+        modificador = 10
+    }
+
+    seconds = seconds * 1000
+
+    let lineas = Math.floor(((seconds / 40) / 25) / modificador)
+
+    const pasoX2 = Math.min(ancho / ((seconds/40) - 1), 5);
+
+    // Dibujar líneas de tiempo para los 2 segundos
+    for (let i = 0; i < lineas; i++) {
+        const x = margen + (i + 1) * modificador * 25 * pasoX2;
         
-
         ctx.beginPath();
-        ctx.moveTo(margen, canvas.height - margen*0.4);
-        ctx.lineTo(margen, canvas.height - margen*0.75);
-        ctx.fillText(`0s`, margen-5, canvas.height - 4);
+        ctx.moveTo(x, canvas.height - margen*0.4);
+        ctx.lineTo(x, canvas.height - margen*0.75);
+        ctx.fillText(`${(i+1) * modificador}s`, x-5, canvas.height - 4);
+        ctx.stroke();
+    }
+
+    // Dibujar líneas y etiquetas en el eje y
+    ctx.fillStyle = 'red'; // Cambiar color del texto
+    ctx.textAlign = 'start'; // Alinear el texto a la izquierda
+    ctx.textBaseline = 'middle'; // Alinear verticalmente el texto al centro
+
+    const valorRange = valorMaximo - valorMinimo;
+    const numLineasY = Math.ceil(1.25*valorRange); // Número de líneas y etiquetas en el eje y
+    const pasoY = (alto) / (1.25*valorRange); // Paso entre líneas en el eje y
+    let incremento = numLineasY > 10 ? 2 : 1;
+
+    if (numLineasY > 500) {
+        incremento = 100
+    } else if (numLineasY > 200) {
+        incremento = 50
+    } else if (numLineasY > 100) {
+        incremento = 20
+    } else if (numLineasY > 50) {
+        incremento = 10
+    } else if (numLineasY > 20) {
+        incremento = 5
+    } else if (numLineasY > 10) {
+        incremento = 2
+    } else if  (numLineasY > 5){
+        incremento = 1
+    } else if (numLineasY > 2) {
+        incremento = 0.5
+    }
+
+    incremento = getIncremento(numLineasY)/10
+
+    for (let i = 0; i <= numLineasY; i += incremento) {
+        const y = canvas.height - margen - i * pasoY;
+        const valorY = valorMinimo + i+1; // Valor correspondiente a la línea y
+
+        // Dibujar línea en el eje y
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 0.8* margen, y);
+        ctx.lineTo(canvas.width - 0.6* margen, y);
         ctx.stroke();
 
-        seconds = seconds / 1000
+        // Escribir valor en el eje y
+        ctx.fillText(`x${valorY}`, canvas.width - 20, y);
+    }        
+    
 
+    // Dibujar curva de Bézier
+    ctx.beginPath();
 
-        let modificador = 1
-        if (seconds > 20) {
-            modificador = 2
-        }
-        if (seconds > 30) {
-            modificador = 5
-        }
-        if (seconds > 60) {
-            modificador = 10
-        }
+    ctx.strokeStyle = 'rgb(123,108,168)';
+    ctx.lineWidth = 4;
 
-        seconds = seconds * 1000
+    ctx.moveTo(margen, canvas.height - margen - (datos[0]-1) * (alto / (1.25*valorMaximo)));
 
-        let lineas = Math.floor(((seconds / 40) / 25) / modificador)
-
-        const pasoX2 = Math.min(ancho / ((seconds/40) - 1), 5);
-
-        // Dibujar líneas de tiempo para los 2 segundos
-        for (let i = 0; i < lineas; i++) {
-            const x = margen + (i + 1) * modificador * 25 * pasoX2;
-            
-            ctx.beginPath();
-            ctx.moveTo(x, canvas.height - margen*0.4);
-            ctx.lineTo(x, canvas.height - margen*0.75);
-            ctx.fillText(`${(i+1) * modificador}s`, x-5, canvas.height - 4);
-            ctx.stroke();
-        }
-
-        // Dibujar líneas y etiquetas en el eje y
-        ctx.fillStyle = 'red'; // Cambiar color del texto
-        ctx.textAlign = 'start'; // Alinear el texto a la izquierda
-        ctx.textBaseline = 'middle'; // Alinear verticalmente el texto al centro
-
-        const valorRange = valorMaximo - valorMinimo;
-        const numLineasY = Math.ceil(1.25*valorRange); // Número de líneas y etiquetas en el eje y
-        const pasoY = (alto) / (1.25*valorRange); // Paso entre líneas en el eje y
-        let incremento = numLineasY > 10 ? 2 : 1;
-
-        if (numLineasY > 500) {
-            incremento = 100
-        } else if (numLineasY > 200) {
-            incremento = 50
-        } else if (numLineasY > 100) {
-            incremento = 20
-        } else if (numLineasY > 50) {
-            incremento = 10
-        } else if (numLineasY > 20) {
-            incremento = 5
-        } else if (numLineasY > 10) {
-            incremento = 2
-        } else if  (numLineasY > 5){
-            incremento = 1
-        } else if (numLineasY > 2) {
-            incremento = 0.5
-        }
-
-        incremento = getIncremento(numLineasY)/10
-
-        for (let i = 0; i <= numLineasY; i += incremento) {
-            const y = canvas.height - margen - i * pasoY;
-            const valorY = valorMinimo + i+1; // Valor correspondiente a la línea y
-
-            // Dibujar línea en el eje y
-            ctx.beginPath();
-            ctx.moveTo(canvas.width - 0.8* margen, y);
-            ctx.lineTo(canvas.width - 0.6* margen, y);
-            ctx.stroke();
-
-            // Escribir valor en el eje y
-            ctx.fillText(`x${valorY}`, canvas.width - 20, y);
-        }        
-        
+    for (let i = 0; i < datos.length - 1; i++) {
+        // Puntos de control para la curva de Bézier
+        const x1 = margen + (i + 1) * pasoX + pasoX / 2;
+        const y1 = canvas.height - margen - (datos[i + 1]-1) * (alto / (1.25*valorMaximo));
+        const x2 = margen + i * pasoX - pasoX / 2;
+        const y2 = canvas.height - margen - (datos[i]-1) * (alto / (1.25*valorMaximo));
+        const x = margen + (i + 1) * pasoX;
+        const y = canvas.height - margen - (datos[i + 1]-1) * (alto / (1.25*valorMaximo));
 
         // Dibujar curva de Bézier
-        ctx.beginPath();
-
-        ctx.strokeStyle = 'rgb(123,108,168)';
-        ctx.lineWidth = 4;
-
-        ctx.moveTo(margen, canvas.height - margen - (datos[0]-1) * (alto / (1.25*valorMaximo)));
-
-        for (let i = 0; i < datos.length - 1; i++) {
-            // Puntos de control para la curva de Bézier
-            const x1 = margen + (i + 1) * pasoX + pasoX / 2;
-            const y1 = canvas.height - margen - (datos[i + 1]-1) * (alto / (1.25*valorMaximo));
-            const x2 = margen + i * pasoX - pasoX / 2;
-            const y2 = canvas.height - margen - (datos[i]-1) * (alto / (1.25*valorMaximo));
-            const x = margen + (i + 1) * pasoX;
-            const y = canvas.height - margen - (datos[i + 1]-1) * (alto / (1.25*valorMaximo));
-
-            // Dibujar curva de Bézier
-            ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
-        }
-
-        ctx.stroke();
-
-        //CALCULAR LA ROTACIO
-        
-        /*
-        let x0 = margen + (datos.length - 2) * pasoX;
-        let y0 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
-
-        let x1 = margen + (datos.length - 1) * pasoX;
-        let y1 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
-
-        let x2 = margen + (datos.length - 1) * pasoX;
-        let y2 = canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo));
-
-        let a = Math.abs(x0-x1)
-        let b = Math.abs(y1-y2)
-        let c = Math.sqrt(a*a + b*b)
-
-        let angle = Math.acos(a/c)
-        ctx.rotate(-angle)
-
-        //cos(x) = a / sqrt(a^2 + b^2)
-
-        //DRAW ROCKET
-        console.log('Angle', angle)
-        ctx.drawImage(img, margen + (datos.length - 1) * pasoX - 32.5, canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))- 38, 75, 75);
-        ctx.rotate(angle)
-        */
-
-        ctx.beginPath();
-        ctx.arc(margen + (datos.length - 1) * pasoX , canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))-1, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgb(123,108,168)'
-        ctx.strokeStyle = 'rgb(123,108,168)'
-        ctx.fill();
-        ctx.stroke();
+        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
     }
 
-    function multiplierAnimation() {
-        const multiplier = document.getElementById('multiplier')
-        multiplier.classList.add('multiplier-animation')
-        setTimeout(() => {
-            multiplier.classList.remove('multiplier-animation')
-        }, 300)
+    ctx.stroke();
+
+    //CALCULAR LA ROTACIO
+    
+    /*
+    let x0 = margen + (datos.length - 2) * pasoX;
+    let y0 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
+
+    let x1 = margen + (datos.length - 1) * pasoX;
+    let y1 = canvas.height - margen - (datos[datos.length - 4]-1) * (alto / (1.25*valorMaximo));
+
+    let x2 = margen + (datos.length - 1) * pasoX;
+    let y2 = canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo));
+
+    let a = Math.abs(x0-x1)
+    let b = Math.abs(y1-y2)
+    let c = Math.sqrt(a*a + b*b)
+
+    let angle = Math.acos(a/c)
+    ctx.rotate(-angle)
+
+    //cos(x) = a / sqrt(a^2 + b^2)
+
+    //DRAW ROCKET
+    console.log('Angle', angle)
+    ctx.drawImage(img, margen + (datos.length - 1) * pasoX - 32.5, canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))- 38, 75, 75);
+    ctx.rotate(angle)
+    */
+
+    ctx.beginPath();
+    ctx.arc(margen + (datos.length - 1) * pasoX , canvas.height - margen - (datos[datos.length - 1]-1) * (alto / (1.25*valorMaximo))-1, 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgb(123,108,168)'
+    ctx.strokeStyle = 'rgb(123,108,168)'
+    ctx.fill();
+    ctx.stroke();
+}
+
+function multiplierAnimation() {
+    const multiplier = document.getElementById('multiplier')
+    multiplier.classList.add('multiplier-animation')
+    setTimeout(() => {
+        multiplier.classList.remove('multiplier-animation')
+    }, 300)
+}
+
+function getIncremento(numLineasY) {
+    // Inicia una matriz de incrementos con el valor 1
+    const incrementos = [1];
+
+    // Mientras que el último valor de la matriz sea menor que numLineasY
+    while (incrementos[incrementos.length - 1] < numLineasY) {
+        // Multiplica el último valor por un factor y añade el resultado a la matriz
+        let ultimoValor = incrementos[incrementos.length - 1];
+        let factor = ultimoValor === 1 || ultimoValor === 5 ? 2 : 5;
+        incrementos.push(ultimoValor * factor);
     }
 
-    function getIncremento(numLineasY) {
-        // Inicia una matriz de incrementos con el valor 1
-        const incrementos = [1];
-    
-        // Mientras que el último valor de la matriz sea menor que numLineasY
-        while (incrementos[incrementos.length - 1] < numLineasY) {
-            // Multiplica el último valor por un factor y añade el resultado a la matriz
-            let ultimoValor = incrementos[incrementos.length - 1];
-            let factor = ultimoValor === 1 || ultimoValor === 5 ? 2 : 5;
-            incrementos.push(ultimoValor * factor);
-        }
-    
-        // Usa el último valor de la matriz como incremento
-        let incremento = incrementos[incrementos.length - 1];
-    
-        return incremento;
+    // Usa el último valor de la matriz como incremento
+    let incremento = incrementos[incrementos.length - 1];
+
+    return incremento;
+}
+
+function promedioMovil(datos, N) {
+    const longitud = Math.min(N, datos.length);
+    const valoresUltimos = datos.slice(-longitud);
+    const suma = valoresUltimos.reduce((acumulador, valor) => acumulador + valor, 0);
+    return suma / longitud;
+}
+
+// Llamar a la función para dibujar el gráfico lineal con curvas de Bézier
+
+
+let localGameState = 1
+
+var multiplier = 1
+var lastMultiplier = 1
+
+var iteration = 1
+var goal = 9999999
+
+var didJoin = false
+
+var rate = 50
+const SERVER_RATE = 100
+
+var segons = 10;
+
+let gameStarted = false
+
+const socket = io('ws://localhost:7777/crash', {
+    withCredentials: true
+})
+
+let localTempo = 0
+let serverTempo = 0
+
+let alreadyChangedButtons = false
+let alreadyChangedAlreacyChangedButtons = false // XD
+
+socket.on('multiplier', (data) => {
+    if (!alreadyChangedAlreacyChangedButtons) {
+        alreadyChangedAlreacyChangedButtons = true
+        alreadyChangedButtons = false
     }
 
-    function promedioMovil(datos, N) {
-        const longitud = Math.min(N, datos.length);
-        const valoresUltimos = datos.slice(-longitud);
-        const suma = valoresUltimos.reduce((acumulador, valor) => acumulador + valor, 0);
-        return suma / longitud;
-    }
+    lastMultiplier = multiplier
+    multiplier = data.multiplier
+    iteration = data.iteration
+    serverTempo = data.tempo
+    datos.push(multiplier)
+    setTimeout(() => {
+    datos.push(multiplier)}, 20)
 
-    // Llamar a la función para dibujar el gráfico lineal con curvas de Bézier
+    console.log(alreadyChangedButtons)
 
-
-    var multiplier = 1
-    var lastMultiplier = 1
-
-    var iteration = 1
-    var goal = 9999999
-
-    
-
-    var rate = 50
-
-    var segons = 10;
-
-    let gameStarted = false
-
-    const socket = io('ws://localhost:7777/crash', {
-        withCredentials: true
-    })
-
-    let localTempo = 0
-    let serverTempo = 0
-
-    socket.emit('join', 100)
-
-    socket.on('multiplier', (data) => {
-        lastMultiplier = multiplier
-        multiplier = data.multiplier
-        iteration = data.iteration
-        serverTempo = data.tempo
-        datos.push(multiplier)
-        setTimeout(() => {
-        datos.push(multiplier)}, 20)
-
-        if (!gameStarted) {
-            startGame()
-        }
-    })
-
-    
-
-    socket.on('newGame', (data) => {
-        console.log('New Game', data)
-        datos = []
-        keepGoing = true
-        multiplier = 1
-        lastMultiplier = 1
-        segons = 0
+    if (!gameStarted) {
         startGame()
-    })
+    }
 
+    if (localGameState == 1) {
+        localGameState = 2
+        modalNewGame(0, true)
+    }
+
+    if (!alreadyChangedButtons && didJoin) {
+        alreadyChangedButtons = true
+        console.log("SetJoinedButton")
+        setJoinedButton()
+    }
+
+    if (!alreadyChangedButtons && !didJoin) {
+        alreadyChangedButtons = true
+        console.log("SetBetButton")
+        disableBet()
+    }
+})
+
+socket.on('newGameStarting', (data) => {
+    modalNewGame(data, false)
+    if (!alreadyChangedButtons) {
+        alreadyChangedButtons = true
+        setBetButton()
+    }
+})
+
+socket.on('newGame', (data) => {
     datos = []
+    keepGoing = true
+    multiplier = 1
+    lastMultiplier = 1
+    segons = 0
+    startGame()
+})
 
-    function modalNewGame(remaningTime) {
-        //TODO
-        console.log('New Game', remaningTime)
-    }
+datos = []
 
-    function updateJoiningPlayers(joinedPlayers) {
-        //TODO
-    }
+function modalNewGame(remaningTime, hasToHide) {
+    //TODO
+    const modal = document.getElementById('new-game-modal')
 
-    $.ajax({
-        url: '/crash/get-status',
-        method: 'POST',
-        success: function (data) {
-            switch (data.status) {
-                case 1:
-                    modalNewGame(data.remaningTime)
-                    updateJoiningPlayers(data.joinedPlayers)
-                    datos = data.graphData
-            }
+    if (hasToHide) {
+        if (!modal.classList.contains('hidden')) {
+            modal.classList.add('hidden')
         }
-    })
+        return
+    }
+    
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden') 
+    }
+    document.getElementById('new-game-timer').innerHTML = (remaningTime / 1000).toFixed(1) + 's'
+}
 
-    async function startGame() {
-        socket.on('crash', (data) => {
-            console.log('Crash', data)
-            keepGoing = false
-            
-            multiplier = data
-            datos[datos.length-1] = multiplier
-            document.getElementById('multiplier').innerHTML = 'x'+multiplier.toFixed(2)
+function updateJoiningPlayers(joinedPlayers) {
+    //TODO
+}
 
-            iteration = 0
-            localTempo = 0
-            serverTempo = 0
+$.ajax({
+    url: '/crash/get-status',
+    method: 'POST',
+    success: function (data) {
+        console.log('Data', data)
+        switch (data.status) {
+            case 1:
+                modalNewGame(data.remaningTime, false)
+                updateJoiningPlayers(data.joinedPlayers)
+                setBetButton()
+                localGameState = 1
+                break
+            case 2:
+                datos = data.graphData
+                console.log('Datos', datos)
+                segons = data.iteration * SERVER_RATE
+                bet = data.bet
+                document.getElementById('bet-amount').value = bet
+                didJoin = data.didJoin
+                localGameState = 2
 
-            gameStarted = false
-        })
-
-        gameStarted = true
-        var keepGoing = true
-
-        var lastMultiplierDivisible = 0;
-
-        while (keepGoing) {
-            await timeout(rate)
-            if (multiplier > goal) {
-                keepGoing = false
-            }
-            
-            if (datos.length > 5000) {
-                datos.shift()
-            }
-
-
-            document.getElementById('multiplier').innerHTML = 'x'+datos[datos.length-1].toFixed(2)
-            /*
-            if (lastMultiplier != multiplier && parseInt(multiplier) > lastMultiplierDivisible) {
-                multiplierAnimation()
-                console.log('animation')
-                lastMultiplierDivisible = parseInt(multiplier)
-            }
-            */
-            
-            iteration++
-            segons += rate
-            document.getElementById('segons').innerHTML = (segons/1000).toFixed(1)+'s'
-            dibujarGraficoLinealConBezier(datos, segons)
+                if (!didJoin) {
+                    console.log('Did not join!! DISABLE BET')
+                    disableBet()
+                } else {
+                    setJoinedButton()
+                }
+                break
         }
     }
 })
+
+async function startGame() {
+    socket.on('crash', (data) => {
+        console.log('Crash', data)
+        keepGoing = false
+        
+        multiplier = data
+        datos[datos.length-1] = multiplier
+        document.getElementById('multiplier').innerHTML = 'x'+multiplier.toFixed(2)
+
+        iteration = 0
+        localTempo = 0
+        serverTempo = 0
+
+        gameStarted = false
+
+        alreadyChangedButtons = false
+        alreadyChangedAlreacyChangedButtons = false
+
+        localGameState = 1
+
+        //Important resetear variables que mantenen en sincronia el joc
+        console.log('didJoin set to false')
+        didJoin = false
+        bet = 0
+    })
+
+    gameStarted = true
+    var keepGoing = true
+
+    var lastMultiplierDivisible = 0;
+
+    while (keepGoing) {
+        await timeout(rate)
+        if (multiplier > goal) {
+            keepGoing = false
+        }
+        
+        if (datos.length > 5000) {
+            datos.shift()
+        }
+
+
+        document.getElementById('multiplier').innerHTML = 'x'+datos[datos.length-1].toFixed(2)
+        document.getElementById('profit').innerHTML = `Total profit: $${(datos[datos.length-1] * bet).toFixed(2)}`
+
+        /*
+        FER PETITA ANIMACIO AL AUGMENTAR EL MULTIPLIER PER 1
+        desactivat per evitar que es mogui el text de 'current profit'
+        */
+        
+        /*
+        if (lastMultiplier != multiplier && parseInt(multiplier) > lastMultiplierDivisible) {
+            multiplierAnimation()
+            console.log('animation')
+            lastMultiplierDivisible = parseInt(multiplier)
+        }
+        */
+        
+        iteration++
+        segons += rate
+        dibujarGraficoLinealConBezier(datos, segons)
+    }
+}
 
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let bet = 0
+
+function placeBet() {
+    const amount = parseFloat(document.getElementById('bet-amount').value)
+    $.ajax({
+        url: '/crash/join',
+        method: 'POST',
+        data: {
+            bet: amount
+        },
+        success: (data) => {
+            console.log('placing bet', data)
+            disableBet()
+            bet = amount
+            console.log('didJoin set to true')
+            didJoin = true
+        },
+        error: (err) => {
+            console.log('Error', err)
+        }
+    })
+}
+
+function disableBet() {
+    const betInput = document.getElementById('bet-amount')
+    const betButton = document.getElementById('bet-button')
+
+    betInput.disabled = true
+    betButton.disabled = true
+    betInput.classList.add('disabled')
+    betButton.classList.add('disabled-button')
+
+    console.log('Disabling bet')
+}
+
+function setBetButton() {
+    try {
+        const joinedButton = document.getElementById('check-out')
+        joinedButton.remove()
+    } catch (e) {}
+
+    document.getElementById('bet-amount').disabled = false
+    document.getElementById('bet-amount').classList.remove('disabled')
+
+    if (document.getElementById('bet-button')) {
+        if (document.getElementById('bet-button').classList.contains('disabled-button')) {
+            document.getElementById('bet-button').classList.remove('disabled-button')
+            document.getElementById('bet-button').disabled = false
+        }
+        return
+    }
+
+    const betButton = document.createElement('button')
+    betButton.classList.add('start-game')
+    betButton.id = 'bet-button'
+
+    betButton.onclick = () => {
+        placeBet()
+    }
+
+    betButton.innerHTML = 'Place Bet'
+
+    document.getElementById('user-menu').appendChild(betButton)
+
+}
+
+function setJoinedButton() {
+    try {
+        const betButton = document.getElementById('bet-button')
+        betButton.remove()
+    } catch (e) {}
+
+
+    if (document.getElementById('check-out')) {
+        return
+    }
+
+    const joinedButton = document.createElement('button')
+    joinedButton.classList.add('check-out')
+    joinedButton.classList.add('joined-button')
+    joinedButton.id = 'check-out'
+
+    joinedButton.innerHTML = 'Cash-Out'
+
+    document.getElementById('user-menu').appendChild(joinedButton)
+}

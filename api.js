@@ -512,16 +512,17 @@ function timeout(ms) {
 }
 
 const crashGameEnabled = true
-const rate = 100
+const RATE = 100
 let iteration = 1
 
 let multiplier = 1
 let lastMultiplier = 1
 
 let newGameStarting = true
-let newGameCooldown = 5000
+let newGameCooldown = 10000
 
 let joiningPlayers = []
+let joinedPlayers = []
 let hash = ""
 
 let maxMultiplier = 1.00
@@ -535,27 +536,49 @@ const crashGame = io.of('/crash');
 let crashStatus = 1;
 let graphData = []
 
+/*
+    1: New game starting
+    2: Game in progress
+*/
+
 app.post('/crash/get-status', (req, res) => {
+    if (!req.cookies.user_id) {
+        res.status(400).json({ error: "No estás logeado" })
+        return res.end()
+    }
+
+    console.log(crashStatus)
     switch (crashStatus) {
         case 1:
-            res.status(200).json({ status: 1, remaningTime: newGameCooldown, joinedPlayers: joiningPlayers, graphData: graphData })
+            res.status(200).json({ status: 1, remaningTime: newGameCooldown, joinedPlayers: joiningPlayers.length})
             res.end()
+            break
         case 2:
-            res.status(200).json({ status: 2, graphData: graphData, iteration: iteration })
+            let didJoin = false
+            let bet = 0
+            for (var i = 0; i < joinedPlayers.length; i++) {
+                if (joinedPlayers[i].user_id == req.cookies.user_id) {
+                    didJoin = true
+                    bet = joinedPlayers[i].bet
+                }
+            }
+            res.status(200).json({ status: 2, graphData: graphData, iteration: iteration, didJoin: didJoin, bet: bet})
             res.end()
+            break
     }
 });
 
 (async ()=> {
     while (crashGameEnabled) {
-        await timeout(rate)
-        tempo += rate
+        await timeout(RATE)
+        tempo += RATE
         //temps fins a començar la següent partida
         if (newGameStarting) {
             iteration = 0
             if (newGameCooldown > 0) {
-                newGameCooldown -= rate
+                newGameCooldown -= RATE
                 console.log("New game starting in " + newGameCooldown)
+                crashGame.emit('newGameStarting', newGameCooldown)
                 continue
             } else {
                 newGameStarting = false
@@ -564,13 +587,6 @@ app.post('/crash/get-status', (req, res) => {
                 multiplier = 1
 
                 hash = crypto.randomBytes(16).toString("hex")
-                
-                if (joiningPlayers.length) {
-                    for (let i = 0; i < joiningPlayers.length; i++) {
-                        var query = `INSERT INTO crash (hash, user_id, bet, isGameActive) VALUES ('${hash}', ${joiningPlayers[i].user_id}, ${joiningPlayers[i].bet}, 1);`
-                        await pool.query(query)
-                    }
-                }
 
                 crashGame.emit('newGame')
                 
@@ -580,6 +596,9 @@ app.post('/crash/get-status', (req, res) => {
         
         if (iteration == 0) {
             maxMultiplier = crashPointFromHash(hash)
+            joinedPlayers = joiningPlayers
+            joiningPlayers = []
+            crashStatus = 2
         }
 
         if (multiplier > maxMultiplier) {
@@ -587,20 +606,25 @@ app.post('/crash/get-status', (req, res) => {
             joiningPlayers = []
 
             //update all crash games where hash == hash, to set isGameActive to 0
-            var query = `UPDATE crash SET isGameActive = 0 WHERE hash = '${hash}'`
-            await pool.query(query)
             
             crashGame.emit('crash', maxMultiplier)
             tempo = 0
+            crashStatus = 1
+            graphData = []
             continue
         }
         
         iteration++
         lastMultiplier = multiplier
         multiplier = 1+(((iteration*0.15)*(iteration*0.04)*(1+(iteration*0.002)))/400)*2
+
+        //s'afegeix dos vegades pq soc subnormal
+        graphData.push(multiplier)
+        graphData.push(multiplier)
+
         crashGame.emit('multiplier',  {multiplier: multiplier, iteration: iteration, tempo: tempo})
 
-        console.log(`Multiplier: ${multiplier} / Max: ${maxMultiplier}`)
+        //console.log(`Multiplier: ${multiplier} / Max: ${maxMultiplier}`)
     }
 })()
 
@@ -608,10 +632,50 @@ app.get('/crash', (req, res) => {
     res.sendFile(path.join(__dirname + '/client/games/crash/crash.html'));
 })
 
-crashGame.on('connection', (socket) => {
-    let user_id = parseInt(socket.handshake.headers.cookie.split("user_id=")[1].split(";")[0])
-    socket.on('join', async (data) => {
-       joiningPlayers.push({user_id: user_id, bet: parseFloat(data)})
-    })
+app.post('/crash/join', async (req, res) => {
+    console.log(req.cookies, req.body)
+    if (!req.body.bet || !req.cookies.user_id) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+
+    if (req.body.bet < 1) {
+        res.status(400).json({ error: "La apuesta mínima es de 1" })
+        return res.end()
+    }
+
+    if (!checkBalance(req.cookies.user_id, req.body.bet, req.body.bet)) {
+        res.status(400).json({ error: "No tienes suficiente dinero" })
+        return res.end()
+    }
+
+    for (var i = 0; i < joiningPlayers.length; i++) {
+        if (joiningPlayers[i].user_id == req.cookies.user_id) {
+            res.status(400).json({ error: "Ya estás en la partida" })
+            return res.end()
+        }
+    }
+
+    removeMoney(req.cookies.user_id, req.body.bet)
+    joiningPlayers.push({user_id: req.cookies.user_id, bet: req.body.bet})
+    res.status(200).json({ message: "Te has unido a la partida" })
 })
-        
+
+async function checkBalance(user_id, bet, wantedBet) {
+    const query = `SELECT * FROM users WHERE id = '${user_id}'`
+    const result = await pool.query(query)
+
+    if (result[0].money < wantedBet) {
+        return false
+    }
+    return true
+}
+
+async function removeMoney(user_id, bet) {
+    const query = `SELECT * FROM users WHERE id = '${user_id}'`
+    const result = await pool.query(query)
+    const newBalance = result[0].money - bet
+
+    const query2 = `UPDATE users SET money = ${newBalance} WHERE id = '${user_id}'`
+    await pool.query(query2)
+}

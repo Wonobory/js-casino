@@ -42,11 +42,11 @@
 
 
     <div class="crash-container">
-        <div class="user-menu">
+        <div class="user-menu" id="user-menu">
             <label>Bet:</label>
-            <input type="number" name="" id="bet-amount">
+            <input type="number" id="bet-amount">
     
-            <button class="start-game">Place Bet</button>
+            <button id="bet-button" class="start-game" onclick="placeBet()">Place Bet</button>
         </div>
     
         <div class="window-crash">
@@ -54,7 +54,7 @@
     
             </canvas>
     
-            <div class="new-game-container hidden">
+            <div id='new-game-modal' class="new-game-container hidden">
                 <div class="crash-background">
                     
                 </div>
@@ -66,10 +66,8 @@
     
             <div class="multiplier-container">
                 <h1 id="multiplier">x1.0</h1>
-                <span>Total profit: $122.45</span>
+                <span id="profit">Total profit: $122.45</span>
             </div>
-            
-            <h1 id="segons">s</h1>
         </div>
     </div>        
 </body>

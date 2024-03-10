@@ -96,9 +96,33 @@
     height: 3em;
     border: none;
     border-radius: 5px;
+    margin-top: 2em;
+}
+
+button {
+    height: 3em;
+    border: none;
+    border-radius: 5px;
     margin-top: 1.5em;
+
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    height: 3em;
+    font-family: "Helvetica", Arial;
+    font-weight: bold;
 }
 
 #bet-amount {
     height: 2.5em;
+}
+
+.disabled-button {
+    background: #a19321;
+    cursor: not-allowed;
+}
+
+.joined-button {
+    background: #44A64A;
 }
