@@ -22,7 +22,7 @@ const {execSync} = require('child_process');
 
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
-    cors: { origin: 'http://localhost:777', credentials: true},
+    cors: { origin: 'http://26.120.11.243:777', credentials: true},
     cookie: true
 });
 
@@ -540,6 +540,8 @@ let lastMultipliers = []
 let crashStatus = 1;
 let graphData = []
 
+let hasToUpdatePlayerList = false
+
 /*
     1: New game starting
     2: Game in progress
@@ -551,22 +553,37 @@ app.post('/crash/get-status', (req, res) => {
         return res.end()
     }
 
-    console.log(crashStatus)
     switch (crashStatus) {
         case 1:
-            res.status(200).json({ status: 1, remaningTime: newGameCooldown, joinedPlayers: joiningPlayers.length})
+            console.log('1')
+            let didJoin = false
+            let bet = 0
+            for (var i = 0; i < joiningPlayers.length; i++) {
+                if (joiningPlayers[i].user_id == req.cookies.user_id) {
+                    didJoin = true
+                    bet = joiningPlayers[i].bet
+                }
+            }
+
+            res.status(200).json({ status: 1, remaningTime: newGameCooldown, playerList: joiningPlayers, didJoin: didJoin, bet: bet})
             res.end()
             break
         case 2:
-            let didJoin = false
-            let bet = 0
+            console.log('2')
+            var didJoin2 = false
+            var bet2 = 0
+            var hasCashOut = false
+            var cashedMultiplier = 0
             for (var i = 0; i < joinedPlayers.length; i++) {
                 if (joinedPlayers[i].user_id == req.cookies.user_id) {
-                    didJoin = true
-                    bet = joinedPlayers[i].bet
+                    didJoin2 = true
+                    bet2 = joinedPlayers[i].bet
+                    hasCashOut = joinedPlayers[i].hasCashOut
+                    cashedMultiplier = joinedPlayers[i].multiplier
                 }
             }
-            res.status(200).json({ status: 2, graphData: graphData, iteration: iteration, didJoin: didJoin, bet: bet})
+
+            res.status(200).json({ status: 2, graphData: graphData, iteration: iteration, didJoin: didJoin2, bet: bet2, hasCashOut: hasCashOut, multiplier: multiplier, cashedMultiplier: cashedMultiplier, playerList: joinedPlayers})
             res.end()
             break
     }
@@ -581,8 +598,11 @@ app.post('/crash/get-status', (req, res) => {
             iteration = 0
             if (newGameCooldown > 0) {
                 newGameCooldown -= RATE
-                console.log("New game starting in " + newGameCooldown)
-                crashGame.emit('newGameStarting', newGameCooldown)
+                if (hasToUpdatePlayerList) {
+                    hasToUpdatePlayerList = false
+                    crashGame.emit('newGameStarting', {remaningTime: newGameCooldown, playerList: joiningPlayers})
+                }
+                crashGame.emit('newGameStarting', {remaningTime: newGameCooldown})
                 continue
             } else {
                 newGameStarting = false
@@ -617,21 +637,55 @@ app.post('/crash/get-status', (req, res) => {
             lastMultipliers.push(maxMultiplier)
             
             crashGame.emit('crash', maxMultiplier)
+            hasToUpdatePlayerList = true
+
             tempo = 0
             crashStatus = 1
             graphData = []
+
+            //AUTOCHECKOUT
+            for (var i = 0; i < joinedPlayers.length; i++) {
+                if (joinedPlayers[i].autoCashOut) {
+                    if (joinedPlayers[i].autoCashOut < maxMultiplier && !joinedPlayers[i].hasCashOut && joinedPlayers[i].autoCashOut != 0) {
+                        joinedPlayers[i].hasCashOut = true
+                        joinedPlayers[i].multiplier = maxMultiplier
+                        const query = `UPDATE users SET money = money + ${joinedPlayers[i].bet * maxMultiplier} WHERE id = '${joinedPlayers[i].user_id}'`
+                        await pool.query(query)
+                        crashGame.emit('autoCashOut', {user_id: joinedPlayers[i].user_id, name: joinedPlayers[i].name, multiplier: maxMultiplier, bet: joinedPlayers[i].bet})
+                    }
+                }
+            }
+
             continue
+        }
+
+        //AUTOCHECKOUT
+        for (var i = 0; i < joinedPlayers.length; i++) {
+            if (joinedPlayers[i].autoCashOut) {
+                if (multiplier >= joinedPlayers[i].autoCashOut && !joinedPlayers[i].hasCashOut && joinedPlayers[i].autoCashOut != 0) {
+                    joinedPlayers[i].hasCashOut = true
+                    joinedPlayers[i].multiplier = multiplier
+                    const query = `UPDATE users SET money = money + ${joinedPlayers[i].bet * multiplier} WHERE id = '${joinedPlayers[i].user_id}'`
+                    await pool.query(query)
+                    crashGame.emit('autoCashOut', {user_id: joinedPlayers[i].user_id, name: joinedPlayers[i].name, multiplier: multiplier, bet: joinedPlayers[i].bet})
+                }
+            }
         }
         
         iteration++
         lastMultiplier = multiplier
         multiplier = 1+(((iteration*0.15)*(iteration*0.04)*(1+(iteration*0.002)))/400)*2
 
-        //s'afegeix dos vegades pq soc subnormal
+        //s'afegeix dos vegades pq sóc subnormal
         graphData.push(multiplier)
         graphData.push(multiplier)
 
-        crashGame.emit('multiplier',  {multiplier: multiplier, iteration: iteration, tempo: tempo})
+        if (hasToUpdatePlayerList) {
+            hasToUpdatePlayerList = false
+            crashGame.emit('multiplier',  {multiplier: multiplier, iteration: iteration, tempo: tempo, playerList: joinedPlayers})
+        } else {
+            crashGame.emit('multiplier',  {multiplier: multiplier, iteration: iteration, tempo: tempo})
+        }
 
         //console.log(`Multiplier: ${multiplier} / Max: ${maxMultiplier}`)
     }
@@ -648,6 +702,20 @@ app.post('/crash/join', async (req, res) => {
         return res.end()
     }
 
+    if (req.body.autoCashOut) {
+        if (isNaN(parseFloat(req.body.autoCashOut))) {
+            res.status(400).json({ error: "Autocashout no válido" })
+            return res.end()
+        }
+        
+        if (req.body.autoCashOut < 1) {
+            res.status(400).json({ error: "El autocashout mínimo es de 1" })
+            return res.end()
+        }
+    } else {
+        req.body.autoCashOut = 0
+    }
+    
     if (req.body.bet < 1) {
         res.status(400).json({ error: "La apuesta mínima es de 1" })
         return res.end()
@@ -670,8 +738,9 @@ app.post('/crash/join', async (req, res) => {
         }
     }
 
+    hasToUpdatePlayerList = true
     removeMoney(req.cookies.user_id, req.body.bet)
-    joiningPlayers.push({user_id: req.cookies.user_id, bet: req.body.bet})
+    joiningPlayers.push({user_id: req.cookies.user_id, bet: parseFloat(req.body.bet), name: await getName(req.cookies.user_id), hasCashOut: false, multiplier: 0, autoCashOut: parseFloat(req.body.autoCashOut)})
     res.status(200).json({ message: "Te has unido a la partida" })
 })
 
@@ -707,13 +776,17 @@ app.post('/crash/check-out', async (req, res) => {
 
     let bet = 0
     for (var i = 0; i < joinedPlayers.length; i++) {
-        bet = parseInt(joinedPlayers[i].bet)
-        joinedPlayers.splice(i, 1)
+        bet = parseFloat(joinedPlayers[i].bet)
+        joinedPlayers[i].hasCashOut = true
+        joinedPlayers[i].multiplier = multiplier
+        break
     }
     bet *= multiplier
 
     const query = `UPDATE users SET money = money + ${bet} WHERE id = '${req.cookies.user_id}'`
     await pool.query(query)
+
+    crashGame.emit('autoCashOut', {user_id: req.cookies.user_id, name: await getName(req.cookies.user_id), multiplier: multiplier, bet: bet})
 
     res.status(200).json({ message: "Has cobrado " + bet, prize: bet})
 })
@@ -722,3 +795,15 @@ app.get('/crash/last-multipliers', (req, res) => {
     res.status(200).json({ multipliers: lastMultipliers })
     res.end()
 })
+
+function getName(user_id) {
+    return new Promise((resolve, reject) => {
+        const query = `SELECT * FROM users WHERE id = '${user_id}'`
+        pool.query(query, (err, result) => {
+            if (err) {
+                reject(err)
+            }
+            resolve(result[0].name)
+        })
+    })
+}

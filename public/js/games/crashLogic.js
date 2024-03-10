@@ -1,5 +1,3 @@
-
-
 const canvas = document.getElementById('render')
 const ctx = canvas.getContext('2d');
 
@@ -77,7 +75,7 @@ function dibujarGraficoLinealConBezier(datos, seconds) {
     }
 
     // Dibujar líneas y etiquetas en el eje y
-    ctx.fillStyle = 'red'; // Cambiar color del texto
+    ctx.fillStyle = 'rgb(68,69,84)'; // Cambiar color del texto
     ctx.textAlign = 'start'; // Alinear el texto a la izquierda
     ctx.textBaseline = 'middle'; // Alinear verticalmente el texto al centro
 
@@ -232,7 +230,7 @@ var segons = 10;
 
 let gameStarted = false
 
-const socket = io('ws://localhost:7777/crash', {
+const socket = io('ws://26.120.11.243:7777/crash', {
     withCredentials: true
 })
 
@@ -258,7 +256,9 @@ socket.on('multiplier', (data) => {
     setTimeout(() => {
     datos.push(multiplier)}, 20)
 
-    console.log(alreadyChangedButtons)
+    if (data.playerList) {
+        updateJoiningPlayers(data.playerList)
+    }    
 
     if (!gameStarted) {
         startGame()
@@ -269,13 +269,13 @@ socket.on('multiplier', (data) => {
         modalNewGame(0, true)
     }
 
-    if (!alreadyChangedButtons && didJoin) {
+    if (!alreadyChangedButtons && didJoin && !cashedOut) {
         alreadyChangedButtons = true
         console.log("SetJoinedButton")
         setJoinedButton()
     }
 
-    if (!alreadyChangedButtons && !didJoin) {
+    if (!alreadyChangedButtons && !didJoin && !cashedOut) {
         alreadyChangedButtons = true
         console.log("SetBetButton")
         disableBet()
@@ -283,10 +283,15 @@ socket.on('multiplier', (data) => {
 })
 
 socket.on('newGameStarting', (data) => {
-    modalNewGame(data, false)
+    modalNewGame(data.remaningTime, false)
     if (!alreadyChangedButtons) {
         alreadyChangedButtons = true
+        hasCashOut = false
         setBetButton()
+    }
+
+    if (data.playerList) {
+        updateJoiningPlayers(data.playerList)
     }
 })
 
@@ -298,6 +303,45 @@ socket.on('newGame', (data) => {
     segons = 0
     startGame()
 })
+
+socket.on('autoCashOut', (data) => {
+    if (data.user_id == getCookie('user_id')) {
+        setBetButton()
+        disableBet()
+        didJoin = false
+        bet = 0
+        updateBalance()
+        cashedOut = true
+    }
+
+    cashOutAnimation(data)
+})
+
+function cashOutAnimation(data) {
+    const currentPlayers = $('.player')
+    
+    for (var i = 0; i < currentPlayers.length; i++) {
+        if (currentPlayers[i].classList.contains('player') && currentPlayers[i].innerText == data.name) {
+            const bet = currentPlayers[i].nextSibling
+            bet.innerText = data.bet * data.multiplier
+
+            currentPlayer = currentPlayers[i]
+
+            bet.innerText = '+ $' + ((data.bet * data.multiplier).toFixed(2)).toLocaleString()
+            currentPlayers[i].animate({
+                color: '#44a64a'
+            }, 1000).onfinish = () => {
+                currentPlayer.style.color = '#44a64a'
+                
+            }
+            bet.animate({
+                color: '#44a64a'
+            }, 1000).onfinish = () => {
+                bet.style.color = '#44a64a'
+            }
+        }
+    }
+}
 
 datos = []
 
@@ -319,7 +363,38 @@ function modalNewGame(remaningTime, hasToHide) {
 }
 
 function updateJoiningPlayers(joinedPlayers) {
-    //TODO
+    document.getElementById('player-list').innerHTML = ''
+
+    const totalBets = document.getElementById('bets-total')
+    const totalPlayers = document.getElementById('player-total')
+
+    let totalBet = 0
+    let totalPlayer = 0
+
+    joinedPlayers = joinedPlayers.sort((a, b) => b.bet - a.bet)
+
+    for (var i = 0; i < joinedPlayers.length; i++) {
+        const container = document.createElement('tr')
+        const playerName = document.createElement('td') 
+        const bet = document.createElement('td')
+
+        playerName.innerText = joinedPlayers[i].name
+        bet.innerText = '$' + joinedPlayers[i].bet.toLocaleString()
+
+        playerName.classList.add('player')
+        bet.classList.add('bet')
+
+        container.appendChild(playerName)
+        container.appendChild(bet)
+
+        totalBet += joinedPlayers[i].bet
+        totalPlayer++
+
+        document.getElementById('player-list').appendChild(container)
+    }
+
+    totalBets.innerText = '$' + (parseFloat(totalBet.toFixed(2))).toLocaleString()
+    totalPlayers.innerText = `${totalPlayer} players`
 }
 
 $.ajax({
@@ -330,25 +405,44 @@ $.ajax({
         switch (data.status) {
             case 1:
                 modalNewGame(data.remaningTime, false)
-                updateJoiningPlayers(data.joinedPlayers)
-                setBetButton()
+                updateJoiningPlayers(data.playerList)
+
+                document.getElementById('bet-amount').value = data.bet
+
+                didJoin = data.didJoin
+                bet = data.bet
+                if (didJoin) {
+                    console.log('Did join!! DISABLE BUTTONS')
+                    alreadyChangedButtons = true
+                    disableBet()
+                }
+                
                 localGameState = 1
                 break
             case 2:
                 datos = data.graphData
-                console.log('Datos', datos)
                 segons = data.iteration * SERVER_RATE
                 bet = data.bet
                 document.getElementById('bet-amount').value = bet
                 didJoin = data.didJoin
                 localGameState = 2
+                
+                console.log(data)
+                cashedOut = data.hasCashOut
+
+                if (cashedOut) {
+                    setBetButton()
+                    disableBet()
+                }
 
                 if (!didJoin) {
                     console.log('Did not join!! DISABLE BET')
                     disableBet()
-                } else {
+                } else if (didJoin && !data.hasCashOut) {
                     setJoinedButton()
                 }
+
+                updateJoiningPlayers(data.playerList)
                 break
         }
     }
@@ -433,11 +527,15 @@ let bet = 0
 
 function placeBet() {
     const amount = parseFloat(document.getElementById('bet-amount').value)
+    const autoCashOut = document.getElementById('auto-cashout').value
+    
+    console.log('Placing bet', amount, autoCashOut)
     $.ajax({
         url: '/crash/join',
         method: 'POST',
         data: {
-            bet: amount
+            bet: amount,
+            autoCashOut: autoCashOut
         },
         success: (data) => {
             console.log('placing bet', data)
@@ -454,15 +552,9 @@ function placeBet() {
 }
 
 function disableBet() {
-    const betInput = document.getElementById('bet-amount')
     const betButton = document.getElementById('bet-button')
 
-    betInput.disabled = true
-    betButton.disabled = true
-    betInput.classList.add('disabled')
     betButton.classList.add('disabled-button')
-
-    console.log('Disabling bet')
 }
 
 function setBetButton() {
@@ -470,9 +562,6 @@ function setBetButton() {
         const joinedButton = document.getElementById('check-out')
         joinedButton.remove()
     } catch (e) {}
-
-    document.getElementById('bet-amount').disabled = false
-    document.getElementById('bet-amount').classList.remove('disabled')
 
     if (document.getElementById('bet-button')) {
         if (document.getElementById('bet-button').classList.contains('disabled-button')) {
@@ -492,7 +581,7 @@ function setBetButton() {
 
     betButton.innerHTML = 'Place Bet'
 
-    document.getElementById('user-menu').appendChild(betButton)
+    document.getElementById('spawn-button').appendChild(betButton)
 
 }
 
@@ -515,7 +604,7 @@ function setJoinedButton() {
     joinedButton.innerHTML = 'Cash-Out'
     joinedButton.onclick = cashOut
 
-    document.getElementById('user-menu').appendChild(joinedButton)
+    document.getElementById('spawn-button').appendChild(joinedButton)
 }
 
 function cashOut() {
@@ -561,23 +650,95 @@ function loadLastMultipliers() {
         success: (data) => {
             console.log('Last multipliers', data)
             const lastMultipliers = document.getElementById('last-multipliers')
-            lastMultipliers.innerHTML = ''
-            data.multipliers.forEach((multiplier) => {
+            lastMultipliers.innerHTML = '<div class="last-multipliers-cover"></div>'
+
+            console.log(data.multipliers)
+
+            for (var i = data.multipliers.length-1; i >= 0; i--) {
                 const span = document.createElement('span')
-                if (multiplier > 2) {
+                if (data.multipliers[i] > 2) {
                     span.classList.add('positive')
                 } else {
                     span.classList.add('negative')
                 }
                 span.classList.add('last-multiplier')
-                span.innerText = `x${multiplier.toFixed(2)}`
+                span.innerText = `x${parseFloat(data.multipliers[i]).toFixed(2)}`
                 lastMultipliers.appendChild(span)
-            })
+            }
         },
         error: (err) => {
             console.log('Error', err)
         }
     })
+}
+
+function setCookie(name,value,days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+  function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+}
+
+document.getElementById('auto-cashout').addEventListener('blur', (e) => {
+    if (!e.target.value && e.target.value != '') {
+        e.target.value = 1.01
+    }
+
+    if (parseFloat(e.target.value) < 1.01 && e.target.value != '') {
+        e.target.value = 1.01
+    }
+
+    if (e.target.value == '') {
+        desactivarAutoCashoutCreu()
+    }
+})
+
+function activarAutoCashoutCreu() {
+    const cross = document.getElementById('cross-auto-cashout')
+
+    if (cross.classList.contains('hidden')) {
+        cross.classList.remove('hidden')
+    }
+}
+
+function desactivarAutoCashoutCreu() {
+    const cross = document.getElementById('cross-auto-cashout')
+
+    if (!cross.classList.contains('hidden')) {
+        cross.classList.add('hidden') 
+    }
+}
+
+document.getElementById('auto-cashout').addEventListener('keydown', (e) => {
+    
+    activarAutoCashoutCreu()
+    
+})
+
+document.getElementById('cross-auto-cashout').addEventListener('click', (e) => {
+    desactivarAutoCashoutCreu()
+    treureAutoCashOut()
+})
+
+function treureAutoCashOut() {
+    const autoCashOut = document.getElementById('auto-cashout')
+
+    if (autoCashOut.value) {
+        autoCashOut.value = ''
+    }
 }
 
 updateBalance()
