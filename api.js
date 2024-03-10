@@ -534,7 +534,8 @@ let tempo = 0
 
 const crashGame = io.of('/crash');
 
-
+//Max 30 multipliers
+let lastMultipliers = []
 
 let crashStatus = 1;
 let graphData = []
@@ -609,6 +610,11 @@ app.post('/crash/get-status', (req, res) => {
             joiningPlayers = []
 
             //update all crash games where hash == hash, to set isGameActive to 0
+
+            if (lastMultipliers.length > 30) {
+                lastMultipliers.shift()
+            }
+            lastMultipliers.push(maxMultiplier)
             
             crashGame.emit('crash', maxMultiplier)
             tempo = 0
@@ -710,4 +716,9 @@ app.post('/crash/check-out', async (req, res) => {
     await pool.query(query)
 
     res.status(200).json({ message: "Has cobrado " + bet, prize: bet})
+})
+
+app.get('/crash/last-multipliers', (req, res) => {
+    res.status(200).json({ multipliers: lastMultipliers })
+    res.end()
 })

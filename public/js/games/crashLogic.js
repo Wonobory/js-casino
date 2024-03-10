@@ -242,6 +242,8 @@ let serverTempo = 0
 let alreadyChangedButtons = false
 let alreadyChangedAlreacyChangedButtons = false // XD
 
+let cashedOut = false
+
 socket.on('multiplier', (data) => {
     if (!alreadyChangedAlreacyChangedButtons) {
         alreadyChangedAlreacyChangedButtons = true
@@ -376,6 +378,9 @@ async function startGame() {
         console.log('didJoin set to false')
         didJoin = false
         bet = 0
+        loadLastMultipliers()
+
+        cashedOut = false
     })
 
     gameStarted = true
@@ -395,7 +400,11 @@ async function startGame() {
 
 
         document.getElementById('multiplier').innerHTML = 'x'+datos[datos.length-1].toFixed(2)
-        document.getElementById('profit').innerHTML = `Total profit: $${(datos[datos.length-1] * bet).toFixed(2)}`
+        if (!cashedOut) {
+            document.getElementById('profit').innerHTML = `+ $${(datos[datos.length-1] * bet).toFixed(2)}`
+        } else {
+            document.getElementById('profit').innerHTML = `Cashed Out!`
+        }
 
         /*
         FER PETITA ANIMACIO AL AUGMENTAR EL MULTIPLIER PER 1
@@ -520,6 +529,7 @@ function cashOut() {
             didJoin = false
             bet = 0
             updateBalance()
+            cashedOut = true
         },
         error: (err) => {
             console.log('Error', err)
@@ -543,4 +553,32 @@ function updateBalance() {
     })
 }
 
+
+function loadLastMultipliers() {
+    $.ajax({
+        url: '/crash/last-multipliers',
+        method: 'GET',
+        success: (data) => {
+            console.log('Last multipliers', data)
+            const lastMultipliers = document.getElementById('last-multipliers')
+            lastMultipliers.innerHTML = ''
+            data.multipliers.forEach((multiplier) => {
+                const span = document.createElement('span')
+                if (multiplier > 2) {
+                    span.classList.add('positive')
+                } else {
+                    span.classList.add('negative')
+                }
+                span.classList.add('last-multiplier')
+                span.innerText = `x${multiplier.toFixed(2)}`
+                lastMultipliers.appendChild(span)
+            })
+        },
+        error: (err) => {
+            console.log('Error', err)
+        }
+    })
+}
+
 updateBalance()
+loadLastMultipliers()
