@@ -763,6 +763,15 @@ async function removeMoney(user_id, bet) {
     await pool.query(query2)
 }
 
+async function addMoney(user_id, bet) {
+    const query = `SELECT * FROM users WHERE id = '${user_id}'`
+    const result = await pool.query(query)
+    const newBalance = result[0].money + bet
+
+    const query2 = `UPDATE users SET money = ${newBalance} WHERE id = '${user_id}'`
+    await pool.query(query2)
+}
+
 app.post('/crash/check-out', async (req, res) => {
     if (!req.cookies.user_id) {
         res.status(400).json({ error: "No estás logeado" })
@@ -807,3 +816,87 @@ function getName(user_id) {
         })
     })
 }
+
+
+// PLINKO
+
+const DOTS = 15
+const multipliersList= [{
+    risk: 3,
+    values: [
+        {value: 620, class: "m1"}, 
+        {value: 83, class: "m2"}, 
+        {value: 27, class: "m3"}, 
+        {value: 8, class: "m4"}, 
+        {value: 3, class: "m5"}, 
+        {value: 0.5, class: "m6"}, 
+        {value: 0.2, class: "m7"}, 
+        {value: 0.2, class: "m7"}, 
+        {value: 0.2, class: "m7"},
+        {value: 0.2, class: "m7"},  
+        {value: 0.5, class: "m6"}, 
+        {value: 3, class: "m5"}, 
+        {value: 8, class: "m4"}, 
+        {value: 27, class: "m3"}, 
+        {value: 83, class: "m2"}, 
+        {value: 620, class: "m1"}
+    ]
+}];
+
+app.get('/plinko', (req, res) => {
+    res.sendFile(path.join(__dirname + '/client/games/plinko/plinko.html'));
+})
+
+
+/*
+bet
+risk
+*/
+app.post('/plinko/ball', async (req, res) => {
+    if (!req.cookies.user_id) {
+        res.status(400).json({ error: "No estás logeado" })
+        return res.end()
+    }
+
+    if (!req.body.bet || !req.body.risk) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+
+    if (req.body.bet < 0.1) {
+        res.status(400).json({ error: "La apuesta mínima es de $0.1" })
+        return res.end()
+    }
+
+    if (!await checkBalance(req.cookies.user_id, req.body.bet)) {
+        res.status(400).json({ error: "No tienes suficiente dinero" })
+        return res.end()
+    }
+
+    await removeMoney(req.cookies.user_id, req.body.bet)
+
+    let random = []
+    let track = 0
+    let path = []
+
+    const bet = parseFloat(req.body.bet)
+
+    for (var i = 0; i < DOTS+1; i++) {
+        random.push(Math.floor(Math.random() * 2))
+    }
+
+    path.push([0, 0])
+
+    for (var i = 1; i < random.length; i++) {
+        if (random[i] === 0) {
+            path.push([i, track])
+        } else {
+            track++
+            path.push([i, track])
+        }
+    }
+
+    console.log(bet)
+    await addMoney(req.cookies.user_id, bet * multipliersList[0].values[track].value)
+    res.status(200).json({ path: path, prize: bet * multipliersList[0].values[track].value, multiplier: multipliersList[0].values[track].value})
+})

@@ -642,7 +642,6 @@ function updateBalance() {
     })
 }
 
-
 function loadLastMultipliers() {
     $.ajax({
         url: '/crash/last-multipliers',
