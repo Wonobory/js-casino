@@ -60,7 +60,7 @@ function drawPlinko() {
             continue
         }
 
-        multipliers.push(new Multiplier(plinko[plinko.length-1][i].x - 45 - (i*(-0.3)), plinko[plinko.length-1][i].y + 40, multiplierList[i].value, multiplierList[i].class))
+        multipliers.push(new Multiplier(plinko[plinko.length-1][i].x - 45 - (i*(-0.3)), plinko[plinko.length-1][i].y + 40, multiplierList[i].value, multiplierList[i].class, i))
     }
 }
 
@@ -160,6 +160,16 @@ class Ball {
                 this.ball.style.top = `${multipliers[y].y -8}px`
                 
                 fakeBalance(this.result.prize)
+                multipliers[y].doAnimation()
+
+                if (this.result.prize > this.bet) {
+                    const audio = new Audio(`/audio/plinko/plinko_entry2.mp3`)
+                    audio.volume = 0.2
+                    audio.play()
+                    continue
+                }
+                
+                playSound()
                 continue
             }
 
@@ -186,6 +196,10 @@ class Ball {
 
             this.result = result
             this.path = result.path
+            fakeBalance(-this.bet)
+            const audio = new Audio(`/audio/plinko/plinko_entry.mp3`)
+            audio.volume = 0.5
+            audio.play()
 
         } catch (error) {
             console.log(error)
@@ -196,7 +210,6 @@ class Ball {
 let balls = []
 
 async function newBall(bet) {
-    fakeBalance(-bet)
     balls.push(new Ball(id, bet))
     id++
 }
@@ -205,28 +218,41 @@ function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+
 class Multiplier {
-    constructor(x, y, value, classe) {
+    constructor(x, y, value, classe, id) {
         this.x = x
         this.y = y
         this.value = value
         this.class = classe
+
+        this.id = id
+
+        this.multiplier = document.createElement('div')
 
         this.drawMultiplier()
     }
 
     drawMultiplier() {
         const plinko = document.getElementById('plinko-container')
-        const multiplier = document.createElement('div')
-        multiplier.classList.add('multiplier')
-        multiplier.classList.add(this.class)
+        
+        this.multiplier.id = 'multiplier' + this.id
+        this.multiplier.classList.add('multiplier')
+        this.multiplier.classList.add(this.class)
 
-        multiplier.innerText = 'x'+this.value
+        this.multiplier.innerText = 'x'+this.value
 
-        multiplier.style.left = `${this.x}px`
-        multiplier.style.top = `${this.y}px`
+        this.multiplier.style.left = `${this.x}px`
+        this.multiplier.style.top = `${this.y}px`
 
-        plinko.appendChild(multiplier)
+        plinko.appendChild(this.multiplier)
+    }
+
+    async doAnimation() {
+        await $(`#multiplier${this.id}`).animate({top: `${this.y+15}px`}, 100).promise()
+        this.multiplier.style.top = `${this.y+15}px`
+        await $(`#multiplier${this.id}`).animate({top: `${this.y}px`}, 100).promise()
+        this.multiplier.style.top = `${this.y}px`
     }
 }
 
@@ -286,6 +312,13 @@ function setCookie(name,value,days) {
         if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
     }
     return null;
+}
+
+function playSound() {
+    const random = Math.floor(Math.random() * 4) + 1
+    const audio = new Audio(`/audio/plinko/plinko${random}.mp3`)
+    audio.volume = 0.5
+    audio.play()
 }
 
 updateBalance()
