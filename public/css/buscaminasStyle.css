@@ -11,17 +11,9 @@
     width: 100%;
 }
 
-html {
-    height: 100%;
-}
-
 .row {
     display: flex;
     flex-direction: row;
-}
-
-:focus-visible {
-    outline: none;
 }
 
 .cell {
@@ -163,13 +155,6 @@ html {
     text-align: center;
 }
 
-.start-game {
-    background: #FFE833;
-    color: #595959;
-    cursor: pointer;
-    margin-top: 2em;
-}
-
 .check-out {
     background: #44A64A;
     color: #00400C;
@@ -211,12 +196,6 @@ html {
     height: 3em;
 
     border-radius: 5px;
-}
-
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
 }
 
 .custom-input {

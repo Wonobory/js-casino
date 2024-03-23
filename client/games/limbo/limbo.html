@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plinko</title>
     
-    <script defer src="/js/games/plinkoLogic.js"></script>
+    <script defer src="/js/games/limboLogic.js"></script>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 
@@ -14,7 +14,7 @@
     
 
     <link rel="stylesheet" href="/css/all.css">
-    <link rel="stylesheet" href="/css/plinko.css">
+    <link rel="stylesheet" href="/css/limbo.css">
 </head>
 <body>
     <header>
@@ -50,12 +50,11 @@
                 <input type="number" id="bet-amount">
             </div>
 
-            <label style="margin-top:1em">Risk:</label>
-            <select id="select-risk">
-                <option value="0" selected>High</option>
-                <option value="1">Medium</option>
-                <option value="2">Low</option>
-            </select>
+            <label>Target Multiplier:</label>
+            <div class="input-background">
+                <span>x</span>
+                <input type="number" id="auto-cashout">
+            </div>
 
             <button style="margin-top:1em" id="bet-button" class="start-game" onclick="placeBet()">Place Bet</button>
 
@@ -64,7 +63,7 @@
                 
             </div>
         </div>
-        <div id="plinko-container" class="plinko-container">
+        <div id="limbo-container" class="plinko-container">
     
         </div>
     </div>
