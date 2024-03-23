@@ -1,27 +1,76 @@
 let plinko = []
 
 const DOTS = 15
-const WIDTH = 1000
-const HEIGHT = 800
+const WIDTH = 800
+const HEIGHT = 700
+const SPACE_BETWEEN_X = 40
+const SPACE_BETWEEN_Y = 38
 
-let multiplierList= [
-    {value: 620, class: "m1"}, 
-    {value: 83, class: "m2"}, 
-    {value: 27, class: "m3"}, 
-    {value: 8, class: "m4"}, 
-    {value: 3, class: "m5"}, 
-    {value: 0.5, class: "m6"}, 
-    {value: 0.2, class: "m7"}, 
-    {value: 0.2, class: "m7"}, 
-    {value: 0.2, class: "m7"},
-    {value: 0.2, class: "m7"},  
-    {value: 0.5, class: "m6"}, 
-    {value: 3, class: "m5"}, 
-    {value: 8, class: "m4"}, 
-    {value: 27, class: "m3"}, 
-    {value: 83, class: "m2"}, 
-    {value: 620, class: "m1"}
-];
+const TOP_MARGIN = 10
+
+let multiplierList= [{
+    risk: 0,
+    values: [
+        {value: 620, class: "hm1"}, 
+        {value: 83, class: "hm2"}, 
+        {value: 27, class: "hm3"}, 
+        {value: 8, class: "hm4"}, 
+        {value: 3, class: "hm5"}, 
+        {value: 0.5, class: "hm6"}, 
+        {value: 0.2, class: "hm7"}, 
+        {value: 0.2, class: "hm7"}, 
+        {value: 0.2, class: "hm7"},
+        {value: 0.2, class: "hm7"},  
+        {value: 0.5, class: "hm6"}, 
+        {value: 3, class: "hm5"}, 
+        {value: 8, class: "hm4"}, 
+        {value: 27, class: "hm3"}, 
+        {value: 83, class: "hm2"}, 
+        {value: 620, class: "hm1"}
+    ]
+},
+{
+    risk: 1,
+    values: [
+        {value: 88, class: "mm1"}, 
+        {value: 18, class: "mm2"},
+        {value: 11, class: "mm3"},
+        {value: 5, class: "mm4"},
+        {value: 3, class: "mm5"},
+        {value: 1.3, class: "mm6"},
+        {value: 0.5, class: "mm7"},
+        {value: 0.3, class: "mm7"},
+        {value: 0.3, class: "mm7"},
+        {value: 0.5, class: "mm7"},
+        {value: 1.3, class: "mm6"},
+        {value: 3, class: "mm5"},
+        {value: 5, class: "mm4"},
+        {value: 11, class: "mm3"},
+        {value: 18, class: "mm2"},
+        {value: 88, class: "mm1"}
+    ]
+},
+{
+    risk: 2,
+    values: [
+        {value: 15, class: "lm1"},
+        {value: 8, class: "lm2"},
+        {value: 3, class: "lm3"},
+        {value: 2, class: "lm4"},
+        {value: 1.5, class: "lm5"},
+        {value: 1.1, class: "lm6"},
+        {value: 1, class: "lm7"},
+        {value: 0.7, class: "lm7"},
+        {value: 0.7, class: "lm7"},
+        {value: 1, class: "lm7"},
+        {value: 1.1, class: "lm6"},
+        {value: 1.5, class: "lm5"},
+        {value: 2, class: "lm4"},
+        {value: 3, class: "lm3"},
+        {value: 8, class: "lm2"},
+        {value: 15, class: "lm1"}
+    ]
+}];
 
 const defHeaders = {
     'Accept': 'application/json',
@@ -35,7 +84,7 @@ function drawPlinko() {
     for (let i = 1; i < DOTS+1; i++) {
         let tempPlinko = []
         for (let j = 0; j < i; j++) {
-            tempPlinko.push(new Dot(j * 55 + WIDTH / 2 - i * (55/2), 30 + i * 40))
+            tempPlinko.push(new Dot(j * SPACE_BETWEEN_X + WIDTH / 2 - i * (SPACE_BETWEEN_X/2), TOP_MARGIN + i * SPACE_BETWEEN_Y))
         }
         plinko.push(tempPlinko)
     }
@@ -49,18 +98,18 @@ function drawPlinko() {
 
     
     for (var i = 0; i < DOTS; i++) {
-        new Dot(WIDTH / 2 - i * (55/2) - 75, 30 + i * 40 + 40).drawPlinko()
-        new Dot(WIDTH / 2 - i * (55/2) - 30 + 55 * plinko[i].length-1, 30 + i * 40 + 40).drawPlinko()
+        new Dot(WIDTH / 2 - i * (SPACE_BETWEEN_X/2) - (plinko[1][1].x - plinko[1][0].x) * 1.5, 38 + i * SPACE_BETWEEN_Y + TOP_MARGIN).drawPlinko()
+        new Dot(WIDTH / 2 - i * (SPACE_BETWEEN_X/2) - (plinko[1][1].x - plinko[1][0].x) * 0.5 + SPACE_BETWEEN_X * plinko[i].length-1, 38 + i * SPACE_BETWEEN_Y + TOP_MARGIN).drawPlinko()
     }
 
     
     for (var i = 0; i < DOTS+1; i++) {
         if (i == DOTS) {
-            multipliers.push(new Multiplier(plinko[plinko.length-1][i-1].x - 15 - (i*(-0.3)) + 25, plinko[plinko.length-1][i-1].y + 40, multiplierList[i].value, multiplierList[i].class))
+            multipliers.push(new Multiplier(plinko[plinko.length-1][i-1].x - 17 - (i*(-0.3)) + 25, plinko[plinko.length-1][i-1].y + 40, multiplierList[risk].values[i].value, multiplierList[risk].values[i].class))
             continue
         }
 
-        multipliers.push(new Multiplier(plinko[plinko.length-1][i].x - 45 - (i*(-0.3)), plinko[plinko.length-1][i].y + 40, multiplierList[i].value, multiplierList[i].class, i))
+        multipliers.push(new Multiplier(plinko[plinko.length-1][i].x - 32 - (i*(-0.3)), plinko[plinko.length-1][i].y + 40, multiplierList[risk].values[i].value, multiplierList[risk].values[i].class, i))
     }
 }
 
@@ -86,8 +135,8 @@ let id = 0
 
 class Ball {
     constructor(id, bet) {
-        this.x = WIDTH / 2 - (50/2) +1
-        this.y = 30 + 10 -20
+        this.x = plinko[0][0].x + 3.5
+        this.y = plinko[0][0].y - TOP_MARGIN - 30
 
         this.ball = document.createElement('div')
 
@@ -155,11 +204,12 @@ class Ball {
             let y = this.path[i][1]
 
             if (i == DOTS) {
-                await $(`#${this.id}`).animate({left: `${multipliers[y].x+15}px`, top: `${multipliers[y].y - 8}px`}, 350).promise()
+                await $(`#${this.id}`).animate({left: `${multipliers[y].x+15}px`, top: `${multipliers[y].y - 8}px`}, 200, "linear").promise()
                 this.ball.style.left = `${multipliers[y].x+20}px`
                 this.ball.style.top = `${multipliers[y].y -8}px`
                 
                 fakeBalance(this.result.prize)
+                notyfManager.newNotyf(this.result.prize-this.bet)
                 multipliers[y].doAnimation()
 
                 if (this.result.prize > this.bet) {
@@ -174,7 +224,7 @@ class Ball {
             }
 
 
-            await $(`#${this.id}`).animate({left: `${plinko[x][y].x + 4}px`, top: `${plinko[x][y].y - 8}px`}, 350).promise()
+            await $(`#${this.id}`).animate({left: `${plinko[x][y].x + 4}px`, top: `${plinko[x][y].y - 8}px`}, 200, "linear").promise()
             this.ball.style.left = `${plinko[x][y].x + 4}px`
             this.ball.style.top = `${plinko[x][y].y -8}px`
         }
@@ -188,11 +238,9 @@ class Ball {
                 url: "/plinko/ball",
                 data: {
                     bet: this.bet,
-                    risk: 1
+                    risk: risk
                 },
             })
-
-            console.log(result)
 
             this.result = result
             this.path = result.path
@@ -208,6 +256,7 @@ class Ball {
 }
 
 let balls = []
+let risk = 0
 
 async function newBall(bet) {
     balls.push(new Ball(id, bet))
@@ -270,7 +319,6 @@ function updateBalance() {
         type: 'POST',
         headers: defHeaders,
         success: function (data) {
-            console.log(data)
             document.getElementById('balance').innerText = `${parseFloat(data.balance.toFixed(2)).toLocaleString()}`
         },
         error: function (err) {
@@ -290,8 +338,12 @@ function fakeBalance(toAdd) {
 }
 
 function placeBet() {
-    const bet = parseFloat(document.getElementById('bet-amount').value) ? parseFloat(document.getElementById('bet-amount').value) : 0
-    newBall(bet)
+    const balance = parseFloat(document.getElementById('balance').innerText.replace(/\./g, '').replace(/,/g, '.'))
+    const bet = parseFloat(document.getElementById('bet-amount').value)
+    if (bet < balance) {
+        const bet = parseFloat(document.getElementById('bet-amount').value) ? parseFloat(document.getElementById('bet-amount').value) : 0
+        newBall(bet)
+    }
 }
 
 function setCookie(name,value,days) {
@@ -320,6 +372,76 @@ function playSound() {
     audio.volume = 0.5
     audio.play()
 }
+
+class Notyf {
+    constructor(amount) {
+        this.amount = amount
+        this.notyf = document.createElement('div')
+        this.drawNotyf()
+    }
+
+    drawNotyf() {
+        const notyf = document.getElementById('plinko-wins')
+        this.notyf.classList.add('plinko-notyf')
+
+        if (this.amount < 0) {
+            this.notyf.classList.add('notyf-lose')
+            this.notyf.innerText = `-$${parseFloat(Math.abs(this.amount).toFixed(2)).toLocaleString()}`
+        } else {
+            this.notyf.classList.add('notyf-win')
+            this.notyf.innerText = `+$${parseFloat(this.amount.toFixed(2)).toLocaleString()}`
+        }
+
+        notyf.appendChild(this.notyf)
+        this.newNotyfAnimation()
+    }
+
+    async newNotyfAnimation() {
+        this.notyf.style.marginLeft = '-15%'
+        this.notyf.style.width = '72%'
+        this.notyf.style.opacity = '0'
+
+        await $(this.notyf).animate({marginLeft: '0', width: '87%', opacity: '1'}, 150).promise()
+
+        this.notyf.style.marginLeft = '0'
+        this.notyf.style.width = '87%'
+        this.notyf.style.opacity = '1'
+    }
+
+    async deleteAnimation() {
+        this.notyf.style.position = 'absolute'
+        this.notyf.style.top = '90%'
+        this.notyf.style.left = '0'
+
+        await $(this.notyf).animate({left: '-6em', opacity: '0'}, 150).promise()
+
+        this.notyf.style.left = '-3em'
+        this.notyf.remove()
+    }
+}
+
+class NotyfManager {
+    constructor(maxSize) {
+        this.notyfs = []
+        this.maxSize = maxSize
+    }
+
+    newNotyf(amount) {
+        this.notyfs.push(new Notyf(amount))
+        if (this.notyfs.length > this.maxSize) {
+            this.notyfs[0].deleteAnimation()
+            this.notyfs.shift()
+        }
+    }
+}
+
+const notyfManager = new NotyfManager(9)
+
+$("#select-risk").change(function() {
+    risk = $(this).val()
+    $('#plinko-container').empty()
+    drawPlinko()
+})
 
 updateBalance()
 drawPlinko()

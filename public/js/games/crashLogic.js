@@ -271,13 +271,11 @@ socket.on('multiplier', (data) => {
 
     if (!alreadyChangedButtons && didJoin && !cashedOut) {
         alreadyChangedButtons = true
-        console.log("SetJoinedButton")
         setJoinedButton()
     }
 
     if (!alreadyChangedButtons && !didJoin && !cashedOut) {
         alreadyChangedButtons = true
-        console.log("SetBetButton")
         disableBet()
     }
 })
@@ -401,7 +399,6 @@ $.ajax({
     url: '/crash/get-status',
     method: 'POST',
     success: function (data) {
-        console.log('Data', data)
         switch (data.status) {
             case 1:
                 modalNewGame(data.remaningTime, false)
@@ -412,7 +409,6 @@ $.ajax({
                 didJoin = data.didJoin
                 bet = data.bet
                 if (didJoin) {
-                    console.log('Did join!! DISABLE BUTTONS')
                     alreadyChangedButtons = true
                     disableBet()
                 }
@@ -426,8 +422,7 @@ $.ajax({
                 document.getElementById('bet-amount').value = bet
                 didJoin = data.didJoin
                 localGameState = 2
-                
-                console.log(data)
+
                 cashedOut = data.hasCashOut
 
                 if (cashedOut) {
@@ -436,7 +431,6 @@ $.ajax({
                 }
 
                 if (!didJoin) {
-                    console.log('Did not join!! DISABLE BET')
                     disableBet()
                 } else if (didJoin && !data.hasCashOut) {
                     setJoinedButton()
@@ -450,7 +444,6 @@ $.ajax({
 
 async function startGame() {
     socket.on('crash', (data) => {
-        console.log('Crash', data)
         keepGoing = false
         
         multiplier = data
@@ -469,7 +462,6 @@ async function startGame() {
         localGameState = 1
 
         //Important resetear variables que mantenen en sincronia el joc
-        console.log('didJoin set to false')
         didJoin = false
         bet = 0
         loadLastMultipliers()
@@ -528,8 +520,7 @@ let bet = 0
 function placeBet() {
     const amount = parseFloat(document.getElementById('bet-amount').value)
     const autoCashOut = document.getElementById('auto-cashout').value
-    
-    console.log('Placing bet', amount, autoCashOut)
+
     $.ajax({
         url: '/crash/join',
         method: 'POST',
@@ -538,10 +529,8 @@ function placeBet() {
             autoCashOut: autoCashOut
         },
         success: (data) => {
-            console.log('placing bet', data)
             disableBet()
             bet = amount
-            console.log('didJoin set to true')
             didJoin = true
             updateBalance()
         },
@@ -612,7 +601,6 @@ function cashOut() {
         url: '/crash/check-out',
         method: 'POST',
         success: (data) => {
-            console.log('Cashing out', data)
             setBetButton()
             disableBet()
             didJoin = false
@@ -632,7 +620,6 @@ function updateBalance() {
         type: 'POST',
         headers: defHeaders,
         success: function (data) {
-            console.log(data)
             document.getElementById('balance').innerText = `${parseFloat(data.balance.toFixed(2)).toLocaleString()}`
         },
         error: function (err) {
@@ -647,11 +634,8 @@ function loadLastMultipliers() {
         url: '/crash/last-multipliers',
         method: 'GET',
         success: (data) => {
-            console.log('Last multipliers', data)
             const lastMultipliers = document.getElementById('last-multipliers')
             lastMultipliers.innerHTML = '<div class="last-multipliers-cover"></div>'
-
-            console.log(data.multipliers)
 
             for (var i = data.multipliers.length-1; i >= 0; i--) {
                 const span = document.createElement('span')

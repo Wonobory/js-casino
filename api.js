@@ -133,7 +133,6 @@ app.post('/get-balance', async (req, res) => {
 })
 
 app.post('/minesweeper/create-game', async (req, res) => {
-    console.log(req.body)
     if (!req.body.bet || !req.body.size || !req.body.mines) {
         res.status(400).json({ error: "Faltan parametros (bet, size, mines)" })
         return res.end()
@@ -502,8 +501,6 @@ function crashPointFromHash(serverSeed) {
     const h = parseInt(hash.slice(0, 52 / 4), 16);
     const e = Math.pow(2, 52);
   
-    console.log(h, e);
-  
     return Math.floor((100 * e - h) / (e - h)) / 100.0;
 }
 
@@ -555,7 +552,6 @@ app.post('/crash/get-status', (req, res) => {
 
     switch (crashStatus) {
         case 1:
-            console.log('1')
             let didJoin = false
             let bet = 0
             for (var i = 0; i < joiningPlayers.length; i++) {
@@ -569,7 +565,6 @@ app.post('/crash/get-status', (req, res) => {
             res.end()
             break
         case 2:
-            console.log('2')
             var didJoin2 = false
             var bet2 = 0
             var hasCashOut = false
@@ -613,8 +608,6 @@ app.post('/crash/get-status', (req, res) => {
                 hash = crypto.randomBytes(16).toString("hex")
 
                 crashGame.emit('newGame')
-                
-                console.log("New game starting")
             }
         }
         
@@ -696,7 +689,6 @@ app.get('/crash', (req, res) => {
 })
 
 app.post('/crash/join', async (req, res) => {
-    console.log(req.cookies, req.body)
     if (!req.body.bet || !req.cookies.user_id) {
         res.status(400).json({ error: "Faltan parametros" })
         return res.end()
@@ -822,7 +814,7 @@ function getName(user_id) {
 
 const DOTS = 15
 const multipliersList= [{
-    risk: 3,
+    risk: 0,
     values: [
         {value: 620, class: "m1"}, 
         {value: 83, class: "m2"}, 
@@ -840,6 +832,48 @@ const multipliersList= [{
         {value: 27, class: "m3"}, 
         {value: 83, class: "m2"}, 
         {value: 620, class: "m1"}
+    ]
+},
+{
+    risk: 1,
+    values: [
+        {value: 88, class: "mm1"}, 
+        {value: 18, class: "mm2"},
+        {value: 11, class: "mm3"},
+        {value: 5, class: "mm4"},
+        {value: 3, class: "mm5"},
+        {value: 1.3, class: "mm6"},
+        {value: 0.5, class: "mm7"},
+        {value: 0.3, class: "mm7"},
+        {value: 0.3, class: "mm7"},
+        {value: 0.5, class: "mm7"},
+        {value: 1.3, class: "mm6"},
+        {value: 3, class: "mm5"},
+        {value: 5, class: "mm4"},
+        {value: 11, class: "mm3"},
+        {value: 18, class: "mm2"},
+        {value: 88, class: "mm1"}
+    ]
+},
+{
+    risk: 2,
+    values: [
+        {value: 15, class: "lm1"},
+        {value: 8, class: "lm2"},
+        {value: 3, class: "lm3"},
+        {value: 2, class: "lm4"},
+        {value: 1.5, class: "lm5"},
+        {value: 1.1, class: "lm6"},
+        {value: 1, class: "lm7"},
+        {value: 0.7, class: "lm7"},
+        {value: 0.7, class: "lm7"},
+        {value: 1, class: "lm7"},
+        {value: 1.1, class: "lm6"},
+        {value: 1.5, class: "lm5"},
+        {value: 2, class: "lm4"},
+        {value: 3, class: "lm3"},
+        {value: 8, class: "lm2"},
+        {value: 15, class: "lm1"}
     ]
 }];
 
@@ -860,6 +894,12 @@ app.post('/plinko/ball', async (req, res) => {
 
     if (!req.body.bet || !req.body.risk) {
         res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+    let risk = parseInt(req.body.risk)
+
+    if (risk < 0 || risk > multipliersList.length-1) {
+        res.status(400).json({ error: "Risk out of range" })
         return res.end()
     }
 
@@ -896,7 +936,12 @@ app.post('/plinko/ball', async (req, res) => {
         }
     }
 
-    console.log(bet)
-    await addMoney(req.cookies.user_id, bet * multipliersList[0].values[track].value)
-    res.status(200).json({ path: path, prize: bet * multipliersList[0].values[track].value, multiplier: multipliersList[0].values[track].value})
+    await addMoney(req.cookies.user_id, bet * multipliersList[risk].values[track].value)
+    res.status(200).json({ path: path, prize: bet * multipliersList[risk].values[track].value, multiplier: multipliersList[risk].values[track].value})
 })
+
+/*
+
+LIMBO GAME
+
+*/
