@@ -992,3 +992,53 @@ app.post('/plinko/ball', async (req, res) => {
 app.get('/limbo', (req, res) => {
     res.sendFile(path.join(__dirname + '/client/games/limbo/limbo.html'));
 })
+
+app.post('/limbo/bet', async (req, res) => {
+    console.log(req.body)
+    if (!req.cookies.user_id) {
+        res.status(400).json({ error: "No estás logeado" })
+        return res.end()
+    }
+
+    //check bet
+    if (!req.body.bet) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+    const BET = parseFloat(req.body.bet)
+    if (BET < 0.01) {
+        res.status(400).json({ error: "La apuesta mínima es de $0.01" })
+        return res.end()
+    }
+
+    //check target
+    if (!req.body.target) {
+        res.status(400).json({ error: "Faltan parametros" })
+        return res.end()
+    }
+    const TARGET = parseFloat(req.body.target)
+    if (TARGET < 1.01) {
+        res.status(400).json({ error: "El target mínimo es de 1.01" })
+        return res.end()
+    }
+
+    
+    if (!await checkBalance(req.cookies.user_id, BET)) {
+        res.status(400).json({ error: "No tienes suficiente dinero" })
+        return res.end()
+    }
+
+    await removeMoney(req.cookies.user_id, req.body.bet)
+
+    const HASH = crypto.randomBytes(16).toString("hex")
+    const MULTIPLIER = crashPointFromHash(HASH)
+    console.log(MULTIPLIER)
+
+    let prize = 0
+    if (MULTIPLIER >= TARGET) {
+        prize = BET * TARGET
+        await addMoney(req.cookies.user_id, prize)
+    }
+
+    res.status(200).json({ multiplier: MULTIPLIER, prize: prize })
+})

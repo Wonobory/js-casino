@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plinko</title>
     
+    <script defer src="/js/all.js"></script>
     <script defer src="/js/games/limboLogic.js"></script>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -42,29 +43,55 @@
     </header>
 
 
-    <div class="plinko-game">
+    <div class="game">
         <div class="user-menu">
             <label>Bet:</label>
             <div class="input-background">
-                <span>$</span>
-                <input type="number" id="bet-amount">
+                <div class="input-container-inside">
+                    <span>$</span>
+                    <input type="number" id="bet-amount">
+                </div>
+                
+                <div class="multiply-bet-buttons">
+                    <div id="halve-bet" class="fake-button">
+                        <span>1/2</span>
+                    </div>
+                    <div id="multiply-bet" class="fake-button">
+                        <span>2x</span>
+                    </div>
+                </div>                
             </div>
 
-            <label>Target Multiplier:</label>
-            <div class="input-background">
-                <span>x</span>
-                <input type="number" id="auto-cashout">
+            <div class="part1">
+                <div class="part2" style="width: 93%;">
+                    <label>Target Multiplier:</label>
+                    <div class="input-background">
+                        <span>x</span>
+                        <input type="number" id="target-multiplier">
+                    </div>
+                </div>
+                
+                <div class="part2">
+                    <label>Profit On Win:</label>
+                    <div class="input-background blocked">
+                        <span class="blocked">$ </span>
+                        <input type="number" class="disabled blocked" disabled id="profit">
+                    </div>
+                </div>                
             </div>
 
             <button style="margin-top:1em" id="bet-button" class="start-game" onclick="placeBet()">Place Bet</button>
-
-            <label style="margin-top: 1em;">Last results</label>
-            <div class="plinko-wins" id="plinko-wins">
-                
-            </div>
         </div>
-        <div id="limbo-container" class="plinko-container">
-    
+        <div id="limbo-container" class="game-container">
+            <div class="center max-size">
+                <div class="last-multipliers">
+                    
+                </div>
+                <div class="multiplier-container">
+                    <span class="big-multiplier">1.00</span>
+                    <span>x</span>
+                </div>
+            </div>
         </div>
     </div>
     

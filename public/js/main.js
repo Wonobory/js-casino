@@ -348,9 +348,13 @@ async function checkCell(x, y) {
 
         checkout.innerText = `Cash-Out $${parseFloat(prize.toFixed(3)).toLocaleString()}`
 
+        const emptySound = new Audio('/audio/minesweeper/diamond.mp3')
+        emptySound.volume = 0.1
+        emptySound.play()
+
         div.appendChild(span)
         document.getElementById("cell" + y + x).appendChild(div)
-        await timeout(1500)
+        await timeout(1000)
         div.style.transform = "translateY(-25px)"
         await timeout(400)
         div.style.opacity = "0"
@@ -367,6 +371,10 @@ async function checkCell(x, y) {
         changeImg(document.getElementById("img-cell" + y + x), "bomb")
         $('#cell' + y + x).effect("shake", {times: 5, distance: 3}, 400);
         await revealMines(hex, Game)
+        const bombSound = new Audio('/audio/minesweeper/bomb.mp3')
+        bombSound.volume = 0.2
+        bombSound.play()
+
         blockCells(Game)
         switchToNewGame()
       }
